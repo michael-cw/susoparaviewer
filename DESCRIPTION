@@ -1,0 +1,61 @@
+Package: susoparaviewer
+Title: Shiny Application to visualize Survey Solutions Paradata
+Version: 0.1.0
+Authors@R: 
+    person("Michael", "Wild", , "mwild@worldbank.org", role = c("aut", "cre"))
+Description: A simple shiny application to to visualize Survey Solutions
+    Paradata. The data can be viewed at the questionnaire, the interviewer
+    or the geography level. The application also supports direct
+    connection to the corresponding interview, as well as the production
+    of a summary report.
+License: MIT + file LICENSE
+Imports: 
+    broom,
+    data.table,
+    doFuture,
+    doParallel,
+    dplyr,
+    DT,
+    foreach,
+    fst,
+    future,
+    geos,
+    ggmap,
+    ggplot2,
+    grDevices,
+    htmltools,
+    httr,
+    jsonlite,
+    leaflet,
+    lubridate,
+    magrittr,
+    mapdeck,
+    methods,
+    officer,
+    parallel,
+    plotly,
+    progressr,
+    raster,
+    RColorBrewer,
+    RCurl,
+    readr,
+    RgoogleMaps,
+    sf,
+    shiny,
+    shinyalert,
+    shinycssloaders,
+    shinyjs,
+    shinymaterial,
+    sp,
+    stars,
+    stats,
+    stringr,
+    SurveySolutionsAPI,
+    tools,
+    utils,
+    waiter,
+    zip
+Encoding: UTF-8
+Language: en
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
