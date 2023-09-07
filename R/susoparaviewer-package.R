@@ -23,13 +23,13 @@
 #' @importFrom grDevices colorRampPalette
 #' @importFrom httr authenticate content GET POST timeout write_disk
 #' @importFrom jsonlite fromJSON toJSON
-#' @importFrom leaflet addLegend addPolygons addPolylines addProviderTiles addTiles clearShapes colorFactor colorNumeric fitBounds leaflet leafletOutput leafletProxy popupOptions providerTileOptions renderLeaflet setView
+#' @importFrom leaflet addLegend addPolygons addPolylines addProviderTiles addTiles clearShapes colorFactor colorNumeric fitBounds leaflet leafletOutput leafletProxy popupOptions providers providerTileOptions renderLeaflet setView
 #' @importFrom lubridate hour isoweek mday month wday as_datetime hms
 #' @importFrom mapdeck add_arc add_grid add_path add_polygon add_scatterplot clear_arc clear_grid clear_polygon clear_scatterplot mapdeck mapdeck_style mapdeck_update mapdeck_view mapdeckOutput renderMapdeck
 #' @importFrom methods as
 #' @importFrom officer block_list body_add body_add_break body_add_gg body_add_par body_add_table external_img fp_border fp_par fp_text fpar ftext read_docx run_linebreak set_doc_properties
 #' @importFrom plotly add_annotations add_lines add_trace event_data layout plot_ly plotlyOutput renderPlotly select
-#' @importFrom raster as.data.frame as.factor as.list coordinates getData levels mean merge modal nrow print res subset unique writeRaster
+#' @importFrom raster as.data.frame as.factor as.list coordinates getData levels mean merge nrow print res subset unique writeRaster
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom readr write_file
 #' @importFrom sf st_area st_as_sf st_as_sfc st_bbox st_centroid st_coordinates st_crop st_crs st_is_empty st_is_longlat st_join st_set_crs st_set_geometry st_transform st_within
@@ -73,7 +73,7 @@ if(getRversion() >= "3.3.0")  {
     "m_resp_time_varTRIM",
     "m_diff_dev",
     "Mean_Deviation", "Invalids", "key2", "surveyDay", "duration", "startHour", "mean_duration", "mean_durationNOBREAK",
-    "mean_RespTime", "tot", "providers", "durationNOBREAK_sec", "response", "response1", "response2", "count", "counter",
+    "mean_RespTime", "tot", "durationNOBREAK_sec", "response", "response1", "response2", "count", "counter",
     "m_resp_time_var", "duration_sec", ".data"
   ))
 

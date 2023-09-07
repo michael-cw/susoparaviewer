@@ -95,7 +95,7 @@ paraTransformation<-function(paradata_files = NULL, timeDiffMax = 120,
   para1_answer[,m_resp_time_var:=(mean(resp_time, na.rm = T)), by = .(var)]
   para1_answer[breaks==0,m_diff_dev:=resp_time-m_resp_time_varTRIM]
   para1_answer[,start:=min(time, na.rm = T), by=.(interview__id)]
-  para1_answer[,startHour:=min(hour(time), na.rm = T), by=.(interview__id)]
+  para1_answer[,startHour:=min(data.table::hour(time), na.rm = T), by=.(interview__id)]
   para1_answer[,role:=droplevels(role)][,responsible:=droplevels(responsible)]
   para1_answer[,var:=as.factor(var)]
   para1_answer_merge<-para1_answer[,.SD[1], by=.(interview__id, role)]
@@ -112,7 +112,7 @@ paraTransformation<-function(paradata_files = NULL, timeDiffMax = 120,
   ##  2. GPS extract -->if no name, try identification through grepl
   varNames<-levels(para1_answer$var)
   if(is.na(gpsVarName)) {
-    gpsVarMain<-varNames[grepl("gps", varNames)]
+    gpsVarMain<-varNames[grepl("gps", tolower(varNames))]
   } else {
     stopifnot(is.character(gpsVarName), gpsVarName %in% varNames)
     gpsVarMain<-gpsVarName

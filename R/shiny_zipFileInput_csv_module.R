@@ -71,13 +71,21 @@ zipFileInput_server <- function(id, sep = ",", zipInput = FALSE, file_type = ".t
           req(FALSE)
         }
         ## 2. Read csv into data.table
-        filein<-data.table::fread(file = csvFile,
-                                  sep = sep,
-                                  colClasses = colClasses,
-                                  #fill = T,
-                                  #blank.lines.skip = T
-                                  encoding = "UTF-8"
-                                  )
+        # filein<-data.table::fread(file = csvFile,
+        #                           sep = sep,
+        #                           colClasses = colClasses,
+        #                           #fill = T,
+        #                           #blank.lines.skip = T
+        #                           encoding = "UTF-8"
+        #                           )
+        suppressMessages(
+          suppressWarnings(
+            filein<-readr::read_tsv(
+              file = csvFile
+            )
+          )
+        )
+        filein<-data.table::as.data.table(filein)
       }
       return(filein)
     })
