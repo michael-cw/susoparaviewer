@@ -29,7 +29,7 @@
 #' @importFrom methods as
 #' @importFrom officer block_list body_add body_add_break body_add_gg body_add_par body_add_table external_img fp_border fp_par fp_text fpar ftext read_docx run_linebreak set_doc_properties
 #' @importFrom plotly add_annotations add_lines add_trace event_data layout plot_ly plotlyOutput renderPlotly select
-#' @importFrom raster as.data.frame as.factor as.list coordinates getData levels mean merge nrow print res subset unique writeRaster
+#' @importFrom raster as.data.frame as.factor as.list coordinates getData levels mean merge modal nrow print res subset unique writeRaster
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom readr write_file
 #' @importFrom sf st_area st_as_sf st_as_sfc st_bbox st_centroid st_coordinates st_crop st_crs st_is_empty st_is_longlat st_join st_set_crs st_set_geometry st_transform st_within

@@ -34,6 +34,46 @@ main_server <- function(input, output, session) {
   ## START UP MODAL FOR MAPKEY AND USER
   startupkeyusr <- startupModalSRV("startupModal", useronly = ifelse(getOption("mapwidget.option") == "mapdeck", FALSE, TRUE))
 
+  ## get file path and key
+  # file path
+  fp<-reactiveVal(NULL)
+  observeEvent(startupkeyusr$user(), {
+    usr <- req(startupkeyusr$user())
+    appdir <- file.path(tools::R_user_dir("susoparaviewer", which = "data"), "susoparaviewer")
+    if (!dir.exists(appdir)) {
+      # !only if not exists
+      # 1. Data dir
+      dir.create(appdir, recursive = TRUE, showWarnings = FALSE)
+    }
+    # appdir
+    appdir <- file.path(appdir, paste0(usr))
+    fp(appdir)
+
+    notmessage <- HTML(
+      sprintf(
+        "Your files for this session will be stored in you personal user directory under, <b>%s/%s</b>.",
+        appdir, usr
+      ) %>%
+        stringr::str_remove_all("\\n") %>%
+        stringr::str_squish()
+    )
+
+    showNotification(
+      ui = notmessage,
+      #duration = NULL,
+      id = "userinfostart",
+      type = "message",
+      session = session,
+      closeButton = T
+    )
+  })
+
+  # key
+  observeEvent(startupkeyusr$key(), {
+    kk <- req(startupkeyusr$key())
+    mapdeck::set_token(kk)
+  })
+
 
   ######################################################################################
   ##                SERVER ADMIN SETTINGS
@@ -329,7 +369,6 @@ main_server <- function(input, output, session) {
         value = 0,
         {
           dataFile<-req(dataFileZip())
-          CHECKdataFile<<-dataFile
           unpack <- function(parafile = NULL) {
             if (length(parafile) == 9) {
               ## OLD format
@@ -377,11 +416,7 @@ main_server <- function(input, output, session) {
             #parafile[, c("date", "time") := tstrsplit(time, "T", fixed = TRUE)][]
             #parafile[,]
             # replace missing tz
-            stat_mode<-function(x) {
-              # mode solution from: https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode
-              ux<-unique(x)
-              ux[which.max(tabulate(match(x, ux)))]
-            }
+
             parafile[,tz:=dplyr::if_else(is.na(tz), stat_mode(tz), tz)]
             # convert
             suppressWarnings(
@@ -419,7 +454,30 @@ main_server <- function(input, output, session) {
           incProgress(amount = 0.25, message = "Transformation completed")
         }
       )
-
+      ## show variable selection for gps
+      varnames<-c("NONE", unique(dataFile[action=="AnswerSet", "var"]))
+      shinyalert::shinyalert(
+        inputId = "gpsvarmodal",
+        title = "Select GPS variable for mapping.",
+        text = tagList(
+          shiny::selectInput(
+            inputId = "gpsvar",
+            label = "",
+            choices = varnames
+          )
+        ),
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "warning",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#AEDEF4",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
 
       return(dataFile)
     } else if (input$dataLoad == "Server") {
@@ -499,21 +557,46 @@ main_server <- function(input, output, session) {
     }
   })
 
+  observe({
+    print(input$gpsvar)
+    print(input$gpsvarmodal)
+    print(names(input$side_nav_tab_info))
+  })
   ########### 2. Transform Paradata  ##########################
   observe({
     dataFile <- req(paraDataFile())
+
     if(input$dataLoad %in% c("LocalFile", "File")){
-      #paradata_files<-paradata_files$AnswerSet
-      ## A add rid if it doesnt exist
-      #if (length(grep("rid", names(paradata_files))) == 0) paradata_files[, rid := 0]
+      req(input$gpsvarmodal)
+      if(input$gpsvar=="NONE") {
+        gpssel<-NULL
+      } else {
+        gpssel<-req(input$gpsvar)
+      }
+      # start waiter screen
+      waiter::waiter_show(
+        color = "rgba(13, 71, 161, 0.7)",
+        html = tagList(
+          spin_fading_circles(),
+          "Transorming Data ..."
+        )
+      )
 
       ##  List for subsets
       paraSubsets <- list()
 
       ##################################################################
       ##  2.1. Get Start/End date & DATE seletion (causes re-calculation)
-      fromDate <- as.character(min(dataFile$date, na.rm = T), "%d %B, %Y")
-      toDate <- as.character(max(dataFile$date, na.rm = T), "%d %B, %Y")
+      fromDate <- as.character(min(dataFile$date, na.rm = T))
+      fromDate<-sprintf("%s %d, %d",
+                      lubridate::month(fromDate, label = T),
+                      lubridate::day(fromDate),
+                      lubridate::year(fromDate))
+      toDate <- as.character(max(dataFile$date, na.rm = T))
+      toDate<-sprintf("%s %d, %d",
+                      lubridate::month(toDate, label = T),
+                      lubridate::day(toDate),
+                      lubridate::year(toDate))
       update_material_date_picker(
         session,
         input_id = "dateFrom",
@@ -525,214 +608,7 @@ main_server <- function(input, output, session) {
         value = toDate
       )
       setnames(dataFile, "rid1", "rid")
-      system.time(para_data<-paraTransformation(paradata_files = dataFile, multiCore = NULL))
-      # ##################################################################
-      # ##  2.2. GET ALL ACTION COUNTS
-      # actionDistr <- as.data.table(table(paradata_files$action))
-      # setorderv(actionDistr, "N", order = -1)
-      # names(actionDistr) <- c("Action", "Count")
-      # paraSubsets$action <- actionDistr
-      # ##################################################################
-      # ##  2.3. GET ALL RESPONSIBLE COUNTS
-      # userDistr <- as.data.table(table(paradata_files$responsible))
-      # setorderv(userDistr, "N", order = -1)
-      # names(userDistr) <- c("Responsible", "Count")
-      # userDistr <- userDistr[(Responsible != ""), ]
-      # paraSubsets$user <- userDistr
-      #
-      # ##################################################################
-      # ##  2.4. GET ALL ROLE COUNTS (0= system, 1 interviewer, 2 sv, 3 hq)
-      # roleDistr <- as.data.table(table(droplevels(paradata_files$role)))
-      # setorderv(roleDistr, "N", order = -1)
-      # names(roleDistr) <- c("Role", "Count")
-      # paraSubsets$role <- roleDistr
-      # para_data <- list()
-      #
-      # ##  2.5. Extract questionnaire ID and Key
-      # KeyAssigned <- paradata_files[action == "KeyAssigned"][, c("responsible", "role", "var_resp", "rid") := NULL]
-      # setnames(KeyAssigned, "var", "key")
-      # KeyAssigned <- droplevels(KeyAssigned)
-      # paradata_files <- paradata_files[action != "KeyAssigned"]
-      # paradata_files <- droplevels(paradata_files)
-      # KeyAssigned <- KeyAssigned[, .SD[1], by = .(interview__id)]
-      # KeyAssigned_merge <- KeyAssigned[, .(interview__id, key)]
-      # setkeyv(KeyAssigned, "interview__id")
-      # para_data$KeyAssigned <- KeyAssigned
-      # ##  2.6. Comments
-      # CommentSet <- paradata_files[action == "CommentSet"]
-      # if (nrow(CommentSet) > 0) {
-      #   setnames(CommentSet, "var_resp", "comment")
-      #   CommentSet <- droplevels(CommentSet)
-      #   paradata_files <- paradata_files[action != "CommentSet"]
-      #   paradata_files <- droplevels(paradata_files)
-      #   para_data$CommentSet <- CommentSet
-      # }
-      # ## 2.7 Completed
-      # Completed <- paradata_files[action == "Completed"][, c("responsible", "role", "var_resp", "rid") := NULL]
-      # if (nrow(Completed) > 0) {
-      #   setnames(Completed, "var", "comment")
-      #   Completed <- droplevels(Completed)
-      #   paradata_files <- paradata_files[action != "Completed"]
-      #   paradata_files <- droplevels(paradata_files)
-      #   para_data$Completed <- Completed
-      # }
-      # ##  2.8. AnswerSet
-      # para1_answer <- paradata_files[action == "AnswerSet" | action == "Paused"]
-      # para1_answer <- droplevels(para1_answer)
-      #
-      # ##  3. Time Difference (SORT by counter)
-      # ##  3.1. Function (use shift/lead, and check lead date is the same)
-      # calcTimeDiff <- function(DTfile, by = c("interview__id", "DAY", "MONTH")) {
-      #   DTfile <- copy(DTfile)
-      #   setorderv(DTfile, c("interview__id", "date", "time", "counter"))
-      #   # DTfile<-DTfile[,.SD[.N>20], by=.(interview__id)]
-      #   DTfile[, resp_time := as.integer(0)][, resp_time := ifelse((data.table::shift(date, type = "lag") == date & action != "Paused"),
-      #     time - data.table::shift(time, type = "lag"), NA
-      #   ), by = .(interview__id)][]
-      #   DTfile[, breaks := ifelse(resp_time > 120 & !is.na(resp_time), 1, 0), by = .(interview__id)]
-      #   return(DTfile)
-      # }
-      # para1_answer <- calcTimeDiff(para1_answer)
-      # ##
-      # para1_answer <- para1_answer[!is.na(breaks)]
-      # para1_answer[, duration := round((sum(resp_time, na.rm = T)) / 60, 2), by = .(interview__id)]
-      # para1_answer[breaks == 0, durationNOBREAK := round((sum(resp_time, na.rm = T)) / 60, 2), by = .(interview__id)]
-      # para1_answer[, m_resp_time_varTRIM := (mean(resp_time, na.rm = T, trim = 0.05)), by = .(var)]
-      # para1_answer[, m_resp_time_var := (mean(resp_time, na.rm = T)), by = .(var)]
-      # para1_answer[breaks == 0, m_diff_dev := resp_time - m_resp_time_varTRIM]
-      # para1_answer[, start := min(time, na.rm = T), by = .(interview__id)]
-      # para1_answer[, startHour := min(hour(time), na.rm = T), by = .(interview__id)]
-      # para1_answer <- droplevels(para1_answer)
-      # para1_answer[, var := factor(var)]
-      #
-      # para1_answer_merge <- para1_answer[, .SD[1], by = .(interview__id, role)]
-      # para1_answer_merge <- para1_answer_merge[, .(interview__id, responsible, role)]
-      # ##########################################################################
-      # ##  2. GPS extract -->if no name, try identification through grepl
-      # ##      SELECTION SELECTION
-      # gpsVarName <- ifelse(input$dataLoad == "LocalFile", "g_geoLocation", NA)
-      # allResponses <- TRUE
-      #
-      # varNames <- levels(para1_answer$var)
-      # if (is.na(gpsVarName)) {
-      #   gpsVarMain <- varNames[grepl("gps", varNames)]
-      # } else {
-      #   stopifnot(is.character(gpsVarName), gpsVarName %in% varNames)
-      #   gpsVarMain <- gpsVarName
-      # }
-      #
-      # ## create gps file when exists
-      # if (length(gpsVarMain) > 0) {
-      #   ## Select first gps variable
-      #   cat("\nExtracting GPS variable.\n")
-      #   gpsVar <- gpsVarMain[1]
-      #   gps_file <- para1_answer[var == gpsVar]
-      #   if (nrow(gps_file) == 0) stop(cat("No GPS values found with: ", gpsVarName))
-      #   if (!allResponses) {
-      #     gp <- gps_file[, tstrsplit(response, ",", fixed = T, fill = "<NA>", names = TRUE)][]
-      #     gps_file <- cbind(gps_file, gp)
-      #     setnames(gps_file, c("V1", "V2"), c("response1", "response2"))
-      #   }
-      #
-      #   gps_file <- gps_file[, .(
-      #     interview__id, responsible, time, var_resp, var,
-      #     date, durationNOBREAK, response1, response2
-      #   )]
-      #   gps_file <- gps_file[, c("long") := tstrsplit(response2, "[", fixed = T, keep = c(1))][]
-      #   gps_file[, lat := as.numeric(as.character(response1))]
-      #   gps_file[, long := as.numeric(as.character(long))]
-      #   gpsSelect <- sum(!is.na(gps_file$lat))
-      #   ## If empty iterate over next/only if length>1/until length==k
-      #   k <- 2
-      #   while (gpsSelect >= 0 & gpsSelect <= nrow(gps_file) & length(gpsVarMain) > 1 & length(gpsVarMain) != k) {
-      #     gpsVar <- gpsVarMain[k]
-      #     gps_file <- para1_answer[var == gpsVar]
-      #     if (!allResponses) {
-      #       gp <- gps_file[, tstrsplit(response, ",", fixed = T, fill = "<NA>", names = TRUE)][]
-      #       gps_file <- cbind(gps_file, gp)
-      #       setnames(gps_file, c("V1", "V2"), c("response1", "response2"))
-      #     }
-      #     gps_file <- gps_file[, .(
-      #       interview__id, responsible, time, var_resp,
-      #       date, durationNOBREAK, response1, response2
-      #     )]
-      #     gps_file <- gps_file[, c("long") := tstrsplit(response2, "[", fixed = T, keep = c(1))][]
-      #     gps_file[, lat := as.numeric(as.character(response1))]
-      #     gps_file[, long := as.numeric(as.character(long))]
-      #     k <- k + 1
-      #     gpsSelect <- sum(!is.na(gps_file$lat))
-      #   }
-      #   ##  For merge with EVENT data
-      #   gps_file_merge <- gps_file[, .(interview__id, lat, long)]
-      #   gps_file_merge <- gps_file_merge[, .SD[1], by = .(interview__id)]
-      #   setkeyv(gps_file_merge, "interview__id")
-      # }
-      # ##  Subset with function, key and lapply
-      # ## loop over levels of action with LAPPLY
-      # ## a<-lapply(levels(CHECK$action), FUN = subsetDataTableAction, CHECK)
-      # ##  not used for now
-      # subsetDataTableAction <- function(dt, x) {
-      #   setkeyv(x, "action")
-      #   ## print(dt)
-      #   file <- x[dt]
-      #   ## print(file)
-      #   return(file)
-      # }
-      # AnswerSet <- para1_answer
-      # AnswerSet <- AnswerSet[!is.na(interview__id)]
-      # setkeyv(AnswerSet, "interview__id")
-      # if (exists("gps_file_merge")) AnswerSet <- gps_file_merge[AnswerSet, on = "interview__id"]
-      # AnswerSet <- KeyAssigned_merge[AnswerSet, on = "interview__id"]
-      # para_data$AnswerSet <- AnswerSet
-      #
-      # ##  2.9. Answer Removed (COUNT the number of Removed answer by questionnaire)
-      # AnswerRemoved <- paradata_files[action == "AnswerRemoved"]
-      # AnswerRemoved <- AnswerRemoved[!is.na(interview__id)]
-      # AnswerRemoved[, count := length(counter), by = interview__id]
-      # AnswerRemoved[, c("responsible", "role") := NULL]
-      # AnswerRemoved <- droplevels(AnswerRemoved)
-      # AnswerRemoved <- merge(AnswerRemoved, para1_answer_merge, by = "interview__id", allow.cartesian = T)
-      # setkeyv(AnswerRemoved, "interview__id")
-      # if (exists("gps_file_merge")) AnswerRemoved <- gps_file_merge[AnswerRemoved, on = "interview__id"]
-      # AnswerRemoved <- KeyAssigned_merge[AnswerRemoved, on = "interview__id"]
-      # para_data$AnswerRemoved <- AnswerRemoved
-      # ##  2.10. Approved
-      # ApproveByHeadquarter <- paradata_files[action == "ApproveByHeadquarter"]
-      # ApproveByHeadquarter <- droplevels(ApproveByHeadquarter)
-      # ApproveBySupervisor <- paradata_files[action == "ApproveBySupervisor"]
-      # ApproveBySupervisor <- droplevels(ApproveBySupervisor)
-      # ##  2.11. Invalid
-      # QuestionDeclaredInvalid <- paradata_files[action == "QuestionDeclaredInvalid"]
-      # QuestionDeclaredInvalid <- QuestionDeclaredInvalid[!is.na(interview__id)]
-      # QuestionDeclaredInvalid[, count := length(counter), by = interview__id]
-      # setkeyv(QuestionDeclaredInvalid, "interview__id")
-      # if (exists("gps_file_merge")) QuestionDeclaredInvalid <- gps_file_merge[QuestionDeclaredInvalid, on = "interview__id"]
-      # QuestionDeclaredInvalid <- KeyAssigned_merge[QuestionDeclaredInvalid, on = "interview__id"]
-      # para_data$QuestionDeclaredInvalid <- QuestionDeclaredInvalid
-      # ##  2.12. Valid
-      # QuestionDeclaredValid <- paradata_files[action == "QuestionDeclaredValid"]
-      # QuestionDeclaredValid <- QuestionDeclaredValid[!is.na(interview__id), ]
-      # QuestionDeclaredValid[, count := length(counter), by = interview__id]
-      # para_data$QuestionDeclaredValid <- QuestionDeclaredValid
-      # ##  2.13 Restarted
-      # Restarted <- paradata_files[action == "Restarted"]
-      # Restarted <- Restarted[!is.na(interview__id), ]
-      # Restarted[, count := length(counter), by = interview__id]
-      # setkeyv(Restarted, "interview__id")
-      # if (exists("gps_file_merge")) Restarted <- gps_file_merge[Restarted, on = "interview__id"]
-      # Restarted <- KeyAssigned_merge[Restarted, on = "interview__id"]
-      # para_data$Restarted <- Restarted
-      #
-      # ##  2.14. Rejected
-      # Reject <- paradata_files[action == "RejectedBySupervisor" | action == "RejectedByHeadquarter"][, c("var_resp", "rid") := NULL]
-      # setnames(Reject, "var", "comment")
-      # Reject <- droplevels(Reject)
-      # # paradata_files<-paradata_files[action!="RejectedBySupervisor"&action!="RejectedByHeadquarter"]
-      # # paradata_files<-droplevels(paradata_files)
-      # setkeyv(Reject, "interview__id")
-      # if (exists("gps_file_merge")) Reject <- gps_file_merge[Reject, on = "interview__id"]
-      # Reject <- KeyAssigned_merge[Reject, on = "interview__id"]
-      # para_data$Reject <- Reject
+      para_data<-paraTransformation(paradata_files = dataFile, multiCore = NULL, gpsVarName = gpssel)
 
       ##  Export DATA
       ch <- names(para_data)
@@ -743,7 +619,8 @@ main_server <- function(input, output, session) {
         choices = ch,
         value = ch["AnswerSet"]
       )
-      material_spinner_hide(session, "viewData")
+      #material_spinner_hide(session, "viewData")
+      waiter::waiter_hide()
 
       para_data_coll$para_data <- para_data
     } else {
@@ -760,8 +637,16 @@ main_server <- function(input, output, session) {
 
       ##################################################################
       ##  2.1. Get Start/End date & DATE seletion (causes re-calculation)
-      fromDate <- as.character(min(dataFile$AnswerSet$date, na.rm = T), "%d %B, %Y")
-      toDate <- as.character(max(dataFile$AnswerSet$date, na.rm = T), "%d %B, %Y")
+      fromDate <- as.character(min(dataFile$AnswerSet$date, na.rm = T))
+      fromDate<-sprintf("%s %d, %d",
+                        lubridate::month(fromDate, label = T),
+                        lubridate::day(fromDate),
+                        lubridate::year(fromDate))
+      toDate <- as.character(max(dataFile$AnswerSet$date, na.rm = T))
+      toDate<-sprintf("%s %d, %d",
+                      lubridate::month(toDate, label = T),
+                      lubridate::day(toDate),
+                      lubridate::year(toDate))
       update_material_date_picker(
         session,
         input_id = "dateFrom",
@@ -797,7 +682,6 @@ main_server <- function(input, output, session) {
     ##  2. Transform Data
     ##  2.1. Get Question order based on median
     parafile <- parafile[!is.na(counter)]
-    CHECKparafile<<-parafile
     qPos <- parafile[, .(counterMedian = median(counter, na.rm = T)), by = .(var)]
     setkeyv(qPos, "var")
     setkeyv(parafile, "var")
@@ -1127,7 +1011,7 @@ main_server <- function(input, output, session) {
       tab <- parafile_sub[, .(
         Usage = n_distinct(key2),
         AvTime = round(mean(resp_time, na.rm = T, trim = 0.05), 3),
-        MainRole = modal(role)
+        MainRole = stat_mode(role)
       ),
       by = .(var, WEEK)
       ]
@@ -1150,8 +1034,8 @@ main_server <- function(input, output, session) {
         Questions = n_distinct(var),
         AvTimeQuestion = round(mean(resp_time, na.rm = T, trim = 0.05), 3),
         CompletionTime = mean(durationNOBREAK, na.rm = T),
-        MainRole = modal(role),
-        MainResponsible = modal(responsible)
+        MainRole = stat_mode(role),
+        MainResponsible = stat_mode(responsible)
       ),
       by = .(key, interview__id)
       ]
@@ -1177,8 +1061,8 @@ main_server <- function(input, output, session) {
         Questions = n_distinct(var),
         AvTimeQuestion = round(mean(resp_time, na.rm = T, trim = 0.05), 3),
         CompletionTime = mean(durationNOBREAK, na.rm = T),
-        MainRole = modal(role),
-        MainResponsible = modal(responsible)
+        MainRole = stat_mode(role),
+        MainResponsible = stat_mode(responsible)
       ),
       by = .(key, interview__id)
       ]
@@ -1606,100 +1490,105 @@ main_server <- function(input, output, session) {
   ##  1. Prepare Map
   ADMSHP <- reactive({
     ##  2.1 Admin Boundaries Shape and Aggregation of continous variable
-    shiny::validate(need(input$mapData, message = F))
-    material_spinner_show(session, "admMap")
+    req(input$mapData)
+    req(fp())
+    waiter::waiter_show(
+      color = "rgba(13, 71, 161, 0.7)",
+      html = tagList(
+        waiter::spin_fading_circles(),
+        "Preparing Map ..."
+      )
+    )
 
     # gps_file<-st_as_sf(gps_file, coords = c("long", "lat"), crs = 4326)
     ##  a) Completion Time
     if (input$mapData == "Time") {
-      gps_file <- para_data_coll$para_data$AnswerSet
-      # gps_file<-gps_file[!is.na(lat)&!is.na(long),]
-      shiny::validate(need(nrow(gps_file) > 0, message = F))
+      gps_file<-para_data_coll$para_data$AnswerSet
 
-      shiny::validate(need("lat" %in% names(gps_file), message = " No geo-referenced data avaialable!"))
-      gps_file <- gps_file[, .(
-        durationNOBREAK = mean(durationNOBREAK, na.rm = T),
-        lat = mean(lat, na.rm = T),
-        long = mean(long, na.rm = T)
-      ), by = .(key)]
-      gps_file <- gps_file[!is.na(lat) & !is.na(long), ]
-      gps_file <- gps_file[!is.na(durationNOBREAK), ]
-      gps_file <- st_as_sf(gps_file, coords = c("long", "lat"), crs = 4326)
-      gps_file <- gps_file %>% st_transform(31700)
-
-      gps_file_ras <- st_rasterize(
-        gps_file,
-        template = st_as_stars(
-          st_bbox(gps_file),
-          values = NA_real_,
-          dx = 100, dy = 100
+      #modal if no gps
+      if(!("lat" %in% names(gps_file))) {
+        shinyalert::shinyalert(paste("No GPS data available!"),
+                               "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                               closeOnEsc = TRUE,
+                               closeOnClickOutside = TRUE,
+                               html = FALSE,
+                               type = "error",
+                               showConfirmButton = TRUE,
+                               showCancelButton = FALSE,
+                               confirmButtonText = "OK",
+                               confirmButtonCol = "#AEDEF4",
+                               timer = 0,
+                               imageUrl = "",
+                               animation = TRUE
         )
-      )
-      gps_file_ras_poly <- st_as_sf(gps_file_ras[1], as_points = FALSE, merge = FALSE)
+        waiter::waiter_hide()
+        req(FALSE)
+      }
 
-      # admShp<-GADM.getData(country = "ROU", sp.Library = "sf", level = 2, path = "./data/gadm/")
-
-      admShp <- st_transform(gps_file_ras_poly, 4326)
+      gps_file<-gps_file[, .(durationNOBREAK=mean(durationNOBREAK, na.rm=T),
+                             lat=mean(lat, na.rm=T),
+                             long=mean(long, na.rm=T)), by=.(key)]
+      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "durationNOBREAK", path = fp())
+      admShp<-st_transform(admShp, 4326)
       ## b) Answer Removed
     } else if (input$mapData == "Removals") {
-      gps_file <- para_data_coll$para_data$AnswerRemoved
-      shiny::validate(need("lat" %in% names(gps_file), message = "No geo-referenced data avaialable!"))
-      gps_file <- gps_file[, .(
-        Removals = .N,
-        lat = mean(lat, na.rm = T),
-        long = mean(long, na.rm = T)
-      ), by = .(key)]
-      gps_file <- gps_file[!is.na(lat) & !is.na(long), ]
-      gps_file <- st_as_sf(gps_file, coords = c("long", "lat"), crs = 4326)
-      gps_file <- gps_file %>% st_transform(31700)
-
-      gps_file_ras <- st_rasterize(
-        gps_file,
-        template = st_as_stars(
-          st_bbox(gps_file),
-          values = NA_real_,
-          dx = 100, dy = 100
+      gps_file<-para_data_coll$para_data$AnswerRemoved
+      #modal if no gps
+      if(!("lat" %in% names(gps_file))) {
+        shinyalert::shinyalert(paste("No GPS data available!"),
+                               "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                               closeOnEsc = TRUE,
+                               closeOnClickOutside = TRUE,
+                               html = FALSE,
+                               type = "error",
+                               showConfirmButton = TRUE,
+                               showCancelButton = FALSE,
+                               confirmButtonText = "OK",
+                               confirmButtonCol = "#AEDEF4",
+                               timer = 0,
+                               imageUrl = "",
+                               animation = TRUE
         )
-      )
-      gps_file_ras_poly <- st_as_sf(gps_file_ras[1], as_points = FALSE, merge = FALSE)
-
-      # admShp<-GADM.getData(country = "ROU", sp.Library = "sf", level = 2, path = "./data/gadm/")
-
-      admShp <- st_transform(gps_file_ras_poly, 4326)
+        waiter::waiter_hide()
+        req(FALSE)
+      }
+      gps_file<-gps_file[, .(Removals=.N,
+                             lat=mean(lat, na.rm=T),
+                             long=mean(long, na.rm=T)), by=.(key)]
+      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "Removals", path = fp())
+      admShp<-st_transform(admShp, 4326)
       ## c) Question Invalid
     } else if (input$mapData == "Invalids") {
-      gps_file <- para_data_coll$para_data$QuestionDeclaredInvalid
-      shiny::validate(need("lat" %in% names(gps_file), message = " No geo-referenced data avaialable!"))
-      gps_fileVAR <- gps_file[, .(
-        Invalids = .N,
-        lat = mean(lat, na.rm = T),
-        long = mean(long, na.rm = T)
-      ), by = .(key, var)]
-      gps_file <- gps_file[, .(
-        Invalids = .N,
-        lat = mean(lat, na.rm = T),
-        long = mean(long, na.rm = T)
-      ), by = .(key)]
-      gps_file <- gps_file[!is.na(lat) & !is.na(long), ]
-      gps_file <- st_as_sf(gps_file, coords = c("long", "lat"), crs = 4326)
-      gps_file <- gps_file %>% st_transform(31700)
-
-      gps_file_ras <- st_rasterize(
-        gps_file,
-        template = st_as_stars(
-          st_bbox(gps_file),
-          values = NA_real_,
-          dx = 100, dy = 100
+      gps_file<-para_data_coll$para_data$QuestionDeclaredInvalid
+      #modal if no gps
+      if(!("lat" %in% names(gps_file))) {
+        shinyalert::shinyalert(paste("No GPS data available!"),
+                               "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                               closeOnEsc = TRUE,
+                               closeOnClickOutside = TRUE,
+                               html = FALSE,
+                               type = "error",
+                               showConfirmButton = TRUE,
+                               showCancelButton = FALSE,
+                               confirmButtonText = "OK",
+                               confirmButtonCol = "#AEDEF4",
+                               timer = 0,
+                               imageUrl = "",
+                               animation = TRUE
         )
-      )
-      gps_file_ras_poly <- st_as_sf(gps_file_ras[1], as_points = FALSE, merge = FALSE)
-
-      # admShp<-GADM.getData(country = "ROU", sp.Library = "sf", level = 2, path = "./data/gadm/")
-
-      admShp <- st_transform(gps_file_ras_poly, 4326)
+        waiter::waiter_hide()
+        req(FALSE)
+      }
+      gps_fileVAR<-gps_file[, .(Invalids=.N,
+                                lat=mean(lat, na.rm=T),
+                                long=mean(long, na.rm=T)), by=.(key, var)]
+      gps_file<-gps_file[, .(Invalids=.N,
+                             lat=mean(lat, na.rm=T),
+                             long=mean(long, na.rm=T)), by=.(key)]
+      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "Invalids", path = fp())
+      admShp<-st_transform(admShp, 4326)
     }
-    material_spinner_hide(session, "admMap")
-    admShp$Aggregate <- 1:nrow(admShp)
+    waiter::waiter_hide()
     return(admShp)
   })
   ######################################################
@@ -1710,19 +1599,18 @@ main_server <- function(input, output, session) {
   output$MAP_UI <- shiny::renderUI({
     if (getOption("mapwidget.option") == "mapdeck") {
       tagList(
-        mapModuleUI("baseMap", height = "90vh")
+        mapModuleUI("baseMap", height = "80vh")
       )
     } else if (getOption("mapwidget.option") == "leaflet") {
       tagList(
-        mapUI("baseMap_leaf", height = "90vh")
+        mapUI("baseMap_leaf", height = "80vh")
       )
     }
   })
   ## 1. BASE MAP
-  observe(
+  observeEvent(ADMSHP(),
     {
       m <- req(ADMSHP())
-
       if (getOption("mapwidget.option") == "mapdeck") {
         shiny::validate(need(m, message = F))
         m$tempgr <- 1L
@@ -1731,8 +1619,8 @@ main_server <- function(input, output, session) {
           updateMap = reactive({
             m
           }),
-          z_var = reactive(names(m)[1]),
-          updateGroup = reactive("tempgr"),
+          z_var = reactive("Aggregate"),
+          updateGroup = reactive("Aggregate"),
           polyId = reactive(NULL),
           transitions = list(
             polygon = 2000,
@@ -1746,12 +1634,13 @@ main_server <- function(input, output, session) {
                   updateMap = reactive({
                     m
                   }),
-                  z_var = reactive(names(m)[1]),
-                  updateGroup = reactive("tempgr")
+                  z_var = reactive("Aggregate"),
+                  updateGroup = reactive("Aggregate")
         )
+
       }
     },
-    autoDestroy = F
+    ignoreInit = F
   )
 
 
@@ -1810,16 +1699,24 @@ main_server <- function(input, output, session) {
       need(fileSel, message = F),
       need(fileSel != "(Up)Load Data First!", message = F)
     )
-    material_spinner_show(session, "viewData")
+    #material_spinner_show(session, "viewData")
+    # dates for supsetting
+    # start date
     fromDate <- input$dateFrom
+    fromDate<-lubridate::mdy(fromDate)
+    fromDate <- data.table::as.IDate(fromDate)
+    # from date
     toDate <- input$dateTo
-    fromDate <- as.IDate(as.Date(fromDate, "%d %B, %Y"))
-    toDate <- as.IDate(as.Date(toDate, "%d %B, %Y"))
+    toDate<-lubridate::mdy(toDate)
+    toDate <- data.table::as.IDate(toDate)
+
     allFiles <- allFiles[fileSel][[1]]
     allFiles <- allFiles[date >= fromDate & date <= toDate]
     ## print(allFiles)
     suppressWarnings(
-      allFiles[, c("date", "time", "wDAY", "mDAY", "MONTH", "lat", "long", "interview__id", "var_resp", "response1", "response2", "response3", "response4", "response5") := NULL]
+      allFiles[, c("date", "time", "wDAY", "mDAY", "MONTH", "lat", "long",
+                   "interview__id", "var_resp", "response1", "response2", "response3",
+                   "response4", "response5") := NULL]
     )
     maxCol <- min(length(allFiles), 10)
     allFiles <- allFiles[, c(1:maxCol), with = F]

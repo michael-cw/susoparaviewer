@@ -1,6 +1,8 @@
-#############################################
-##  New function to load GADM data
-##  replaces getData in raster for GADM only
+#' GADM 3.6 get data function
+#'
+#' @noRd
+#' @keywords internal
+#'
 
 # https://biogeo.ucdavis.edu/data/gadm3.6/Rsp/gadm36_AUT_0_sp.rds
 # https://biogeo.ucdavis.edu/data/gadm3.6/Rsp/gadm36_AUT_1_sp.rds
@@ -11,21 +13,23 @@ GADM.getData<-function(name="GADM",country,level,path, sp.Library="sp"){
   DIR<-ifelse(sp.Library=="sp", "/Rsp/", "/Rsf/")
   tf<-tempfile()
 
+  if(!dir.exists(path)) dir.create(path, recursive = T)
+
   ##  1. Create path
   file.name<-paste0("gadm", v, "_", country, "_", level, "_", sp.Library, ".rds")
   f.path<-file.path(path, file.name)
   url <- paste0("https://biogeo.ucdavis.edu/data/gadm", version, DIR, file.name)
-  print(url)
 
   ##  2. check local availability
   if (file.exists(f.path)) {
     GADM.map<- readRDS(f.path)
+    sf::st_crs(GADM.map)<-sf::st_crs(GADM.map)
     return(GADM.map)
   } else {
     GADM.header<-GET(url, write_disk(f.path))
-    print(GADM.header)
     if (GADM.header$status_code==200){
       GADM.map<- readRDS(f.path)
+      sf::st_crs(GADM.map)<-sf::st_crs(GADM.map)
       return(GADM.map)
     } else {
       "No Map available! Are you sure you your request is correctly specified?"

@@ -14,14 +14,26 @@ main_ui <- function(request) {
                   border-color: #1976D2;
                   margin:0 20% 0 20%;")
 
+  # #slide-out
+
   material_page(
     # shiny alert conditional on version
     if (utils::packageVersion("shinyalert") < 3) shinyalert::useShinyalert(),
+    waiter::use_waiter(),
     startupModalUI("startupModal"),
     nav_bar_color = "blue-grey darken-1",
     background_color = "white",
     title = "Survey Solutions Paradata Viewer",
     tags$br(),
+    # css styles
+    tags$style("
+      #slide-out.sidenav {
+        width: 30vw;
+      }
+      #modal-fba285d0-e69b-072b-8c6f-33f90c89a607 {
+        transform: scaleX(2) scaleY(2) !important;
+      }
+    "),
     material_side_nav(
       fixed = FALSE,
       image_source = "www/suso_wb.png",
@@ -206,8 +218,9 @@ main_ui <- function(request) {
                 material_card(
                   title = "Display Settings",
                   depth = 4,
-                  material_radio_button("mapData", "Select Data to display",
-                    c(
+                  material_dropdown("mapData",
+                                    "Select Data to display",
+                    c("",
                       "Time" = "Time",
                       "Removals" = "Removals",
                       "Invalids" = "Invalids"

@@ -1,4 +1,4 @@
-#' Shiny map module elper functions
+#' Shiny map module helper functions
 #'
 #' @description helper functions for map modules:
 #' - location center
