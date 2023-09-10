@@ -27,7 +27,16 @@ main_server <- function(input, output, session) {
                                   backgroundColor = '#0d47a1',
                                   fontWeight = 'bold')
 
+  #########################################
+  ## CSS/UI Styles
+  styleDwlButton <- c("color: #FFFFFF;  width: 180px;background-color: #1976D2;
+                  border-color: #1976D2;
+                  margin:0 20% 0 20%;")
+  smTabDir <- list(dom = "t", pagelength = 500, scrollY = "250px", scrollcollapse = TRUE, paging = FALSE)
 
+  action_btn_close <- c("color: #FFFFFF; background-color: #0d47a1; border-color: #0d47a1")
+  styleActButton <- c("color: #FFFFFF; background-color: #7f0000;
+                  border-color: #7f0000; margin:0 20% 0 20%;")
 
   para_data_coll <- reactiveValues()
 
@@ -37,17 +46,31 @@ main_server <- function(input, output, session) {
   ## get file path and key
   # file path
   fp<-reactiveVal(NULL)
+  fpGADM<-reactiveVal(NULL); fpPARA<-reactiveVal(NULL)
   observeEvent(startupkeyusr$user(), {
     usr <- req(startupkeyusr$user())
-    appdir <- file.path(tools::R_user_dir("susoparaviewer", which = "data"), "susoparaviewer")
+    # user appdir
+    appdir <- file.path(tools::R_user_dir("susoparaviewer", which = "data"))
+    appdir <- file.path(appdir, paste0(usr))
+
     if (!dir.exists(appdir)) {
-      # !only if not exists
-      # 1. Data dir
       dir.create(appdir, recursive = TRUE, showWarnings = FALSE)
     }
-    # appdir
-    appdir <- file.path(appdir, paste0(usr))
     fp(appdir)
+
+    # GADM file dir
+    appdir_sub <- file.path(appdir, "GADM")
+    if (!dir.exists(appdir_sub)) {
+      dir.create(appdir_sub, recursive = TRUE, showWarnings = FALSE)
+    }
+    fpGADM(appdir_sub)
+
+    # Paradata file dir
+    appdir_sub <- file.path(appdir, "paradata")
+    if (!dir.exists(appdir_sub)) {
+      dir.create(appdir_sub, recursive = TRUE, showWarnings = FALSE)
+    }
+    fpPARA(appdir_sub)
 
     notmessage <- HTML(
       sprintf(
@@ -83,7 +106,8 @@ main_server <- function(input, output, session) {
   fpadm<-reactiveVal(NULL)
   # filepath creation
   observe({
-    appdir<-file.path(tools::R_user_dir("susoquestionnairemanual", which = "data"), "admin")
+    req(fp())
+    appdir<-file.path(fp(), "admin")
     if(!dir.exists(appdir)){
       dir.create(appdir, recursive = TRUE, showWarnings = FALSE)
     }
@@ -360,6 +384,94 @@ main_server <- function(input, output, session) {
     )
   )
 
+  # Local Storage
+  # modal for selection
+  observeEvent(input$dataLoad, {
+    if (input$dataLoad == "LocalFile") {
+      paradir<-req(fpPARA())
+      print(paradir)
+
+      shinyalert::shinyalert(
+        inputId = "localfile",
+        title = "Select Paradata File to Process",
+        text = tagList(
+          DT::dataTableOutput("shpDirTable", height = 280)
+        ),
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "warning",
+        showConfirmButton = TRUE,
+        showCancelButton = FALSE,
+        confirmButtonText = "Load File",
+        confirmButtonCol = "#0d47a1",
+        timer = 0,
+        imageUrl = "",
+        animation = TRUE
+      )
+    }
+  })
+
+  # get files in dir
+  flSHP <- reactive({
+    paradir<-req(fpPARA())
+    tab<-basename(
+      tools::file_path_sans_ext(
+        basename(list.dirs(path = paradir,recursive = F))
+      )
+    )
+    tab<-as.data.frame(tab)
+    return(tab)
+  })
+
+  output$shpDirTable <- DT::renderDT(
+    {
+      shiny::validate(need(!is.null(flSHP()), message = "No Maps Available!"))
+      tab <- isolate(flSHP())
+      tab <- DT::datatable(tab, smTabDir, colnames = "",
+                           selection = "single", rownames = F,
+                           style = "bootstrap"
+      )
+      return(tab)
+    },
+    server = TRUE
+  )
+
+  ## 1.4. DT UPDATE TABLE WITH PROXY
+  shpDirTableProxy <- DT::dataTableProxy("shpDirTable", session = session)
+  observeEvent(input$localfile,
+               {
+                 shiny::validate(need(!is.null(flSHP()), message = "No Maps Available!"))
+                 tab <- flSHP()
+                 DT::replaceData(
+                   proxy = shpDirTableProxy,
+                   data = tab,
+                   resetPaging = TRUE,
+                   clearSelection = "all",
+                   rownames = F
+                 )
+               },
+               ignoreInit = T
+  )
+
+  ## 1.5 CLICK EVENT shape selection
+  shp_id <- eventReactive(input$localfile, {
+    req(input$localfile)
+    shiny::validate(need(!is.null(flSHP()), message = "No Raster Available!"))
+    tab <- isolate(flSHP())
+    shiny::validate(need(input$shpDirTable_rows_selected, message = F))
+    ## Disable upload & close modal
+    #shinyjs::disable("new_shape")
+    #shiny::removeModal()
+    ## get name
+    tableName <- tab[input$shpDirTable_rows_selected,]
+    return(tableName)
+  })
+
+  observe({
+    print(input$shpDirTable_rows_selected)
+  })
+
   paraDataFile <- reactive({
     if (input$dataLoad == "File") {
       ############ A. From File
@@ -473,7 +585,7 @@ main_server <- function(input, output, session) {
         showConfirmButton = TRUE,
         showCancelButton = FALSE,
         confirmButtonText = "OK",
-        confirmButtonCol = "#AEDEF4",
+        confirmButtonCol = "#0d47a1",
         timer = 0,
         imageUrl = "",
         animation = TRUE
@@ -533,25 +645,55 @@ main_server <- function(input, output, session) {
       return(dataFile)
     } else if (input$dataLoad == "LocalFile") {
       ############ A. From File
+      filesel<-req(shp_id())
+      paradir<-req(fpPARA())
+      print(filesel)
       withProgress(
-        message = "Data Upload in Progress",
+        message = "Reading from local storage!",
         detail = "This may take a while...",
         value = 0,
         {
-          #######################################
-          ## ONLY TEMPORARY SOLUTION
-          ## --> DATABASE CONNECTION REQUIRED
-          incProgress(amount = 0.1)
-          dataFile <- fst::read.fst("data/pilot/paradata_d3.fst", as.data.table = T)
-          ## Modifications
-          dataFile <- dataFile[action != "", ][, action := droplevels(action)]
-          dataFile[, rid := counter]
+          # get files in dir
+          paradir<-file.path(paradir, filesel)
+          ch<-tools::list_files_with_exts(paradir, exts = "fst", full.names = T)
+          dataFile<-list()
+          # read files
+          for(i in ch) {
+            dataFile[[tools::file_path_sans_ext(basename(i))]]<-fst::read.fst(
+              path = i,
+              as.data.table = T
+            )
+            incProgress(amount = 1/length(ch), message = "Transformation completed")
+          }
+          shiny::showNotification("File successfully loaded from local directory!", type = "message")
 
-          incProgress(amount = 0.25, message = "Transformation completed")
         }
       )
 
-      # CHECKfile<-dataFile
+      ## show variable selection for gps
+      # varnames<-c("NONE", unique(dataFile[action=="AnswerSet", "var"]))
+      # shinyalert::shinyalert(
+      #   inputId = "gpsvarmodal",
+      #   title = "Select GPS variable for mapping.",
+      #   text = tagList(
+      #     shiny::selectInput(
+      #       inputId = "gpsvar",
+      #       label = "",
+      #       choices = varnames
+      #     )
+      #   ),
+      #   closeOnEsc = TRUE,
+      #   closeOnClickOutside = FALSE,
+      #   html = TRUE,
+      #   type = "warning",
+      #   showConfirmButton = TRUE,
+      #   showCancelButton = FALSE,
+      #   confirmButtonText = "OK",
+      #   confirmButtonCol = "#AEDEF4",
+      #   timer = 0,
+      #   imageUrl = "",
+      #   animation = TRUE
+      # )
       return(dataFile)
 
     }
@@ -566,7 +708,7 @@ main_server <- function(input, output, session) {
   observe({
     dataFile <- req(paraDataFile())
 
-    if(input$dataLoad %in% c("LocalFile", "File")){
+    if(input$dataLoad %in% c("File")){
       req(input$gpsvarmodal)
       if(input$gpsvar=="NONE") {
         gpssel<-NULL
@@ -589,9 +731,9 @@ main_server <- function(input, output, session) {
       ##  2.1. Get Start/End date & DATE seletion (causes re-calculation)
       fromDate <- as.character(min(dataFile$date, na.rm = T))
       fromDate<-sprintf("%s %d, %d",
-                      lubridate::month(fromDate, label = T),
-                      lubridate::day(fromDate),
-                      lubridate::year(fromDate))
+                        lubridate::month(fromDate, label = T),
+                        lubridate::day(fromDate),
+                        lubridate::year(fromDate))
       toDate <- as.character(max(dataFile$date, na.rm = T))
       toDate<-sprintf("%s %d, %d",
                       lubridate::month(toDate, label = T),
@@ -610,8 +752,27 @@ main_server <- function(input, output, session) {
       setnames(dataFile, "rid1", "rid")
       para_data<-paraTransformation(paradata_files = dataFile, multiCore = NULL, gpsVarName = gpssel)
 
-      ##  Export DATA
+      # SAVE PARA UPLOAD
+      paradir<-req(fpPARA())
+      # NAME FOR UPLOAD DIR--> all files into single upload dir
+      paradir_n<-paste0(
+        "Uploadfile_",
+        stringr::str_remove_all(Sys.time(), "([:punct:])|([:space:])")
+      )
+      # create dir for upload
+      paradir<-file.path(paradir, paradir_n)
+      if (!dir.exists(paradir)) {
+        dir.create(paradir, recursive = TRUE, showWarnings = FALSE)
+      }
+      # write individual files into dir
       ch <- names(para_data)
+      for(i in ch) {
+        fst::write.fst(para_data[[i]],
+                       path = file.path(paradir, paste0(i, ".fst")))
+      }
+      shiny::showNotification("File successfully written to local directory!", type = "message")
+
+      ##  Export DATA
       ch <- setNames(object = ch, ch)
       update_material_dropdown(
         session,
@@ -623,9 +784,9 @@ main_server <- function(input, output, session) {
       waiter::waiter_hide()
 
       para_data_coll$para_data <- para_data
-    } else {
-      # From SERVER-->no manipulation
-      ##  Export DATA
+    } else if(input$dataLoad == "LocalFile") {
+      # From LOACL FILE-->no manipulation
+
       ch <- names(dataFile)
       ch <- setNames(object = ch, ch)
       update_material_dropdown(
@@ -657,6 +818,64 @@ main_server <- function(input, output, session) {
         input_id = "dateTo",
         value = toDate
       )
+      para_data_coll$para_data<-dataFile
+
+      } else {
+      # From SERVER-->no manipulation
+      ##  Export DATA
+      ch <- names(dataFile)
+
+      ##################################################################
+      ##  2.1. Get Start/End date & DATE seletion (causes re-calculation)
+      fromDate <- as.character(min(dataFile$AnswerSet$date, na.rm = T))
+      fromDate<-sprintf("%s %d, %d",
+                        lubridate::month(fromDate, label = T),
+                        lubridate::day(fromDate),
+                        lubridate::year(fromDate))
+      toDate <- as.character(max(dataFile$AnswerSet$date, na.rm = T))
+      toDate<-sprintf("%s %d, %d",
+                      lubridate::month(toDate, label = T),
+                      lubridate::day(toDate),
+                      lubridate::year(toDate))
+      update_material_date_picker(
+        session,
+        input_id = "dateFrom",
+        value = fromDate
+      )
+      update_material_date_picker(
+        session,
+        input_id = "dateTo",
+        value = toDate
+      )
+
+      # SAVE PARA SERVER
+      paradir<-req(fpPARA())
+      # NAME FOR UPLOAD DIR--> all files into single upload dir
+      paradir_n<-paste0(
+        "SERVER_",
+        stringr::str_remove_all(Sys.time(), "([:punct:])|([:space:])")
+      )
+      # create dir for upload
+      paradir<-file.path(paradir, paradir_n)
+      if (!dir.exists(paradir)) {
+        dir.create(paradir, recursive = TRUE, showWarnings = FALSE)
+      }
+      # write individual files into dir
+      for(i in ch) {
+        fst::write.fst(dataFile[[i]],
+                       path = file.path(paradir, paste0(i, ".fst")))
+      }
+      shiny::showNotification("File successfully written to local directory!", type = "message")
+
+      ch <- setNames(object = ch, ch)
+      update_material_dropdown(
+        session,
+        input_id = "file_select_view",
+        choices = ch,
+        value = ch["AnswerSet"]
+      )
+
+
       para_data_coll$para_data<-dataFile
     }
   })
@@ -1491,7 +1710,7 @@ main_server <- function(input, output, session) {
   ADMSHP <- reactive({
     ##  2.1 Admin Boundaries Shape and Aggregation of continous variable
     req(input$mapData)
-    req(fp())
+    req(fpGADM())
     waiter::waiter_show(
       color = "rgba(13, 71, 161, 0.7)",
       html = tagList(
@@ -1516,7 +1735,7 @@ main_server <- function(input, output, session) {
                                showConfirmButton = TRUE,
                                showCancelButton = FALSE,
                                confirmButtonText = "OK",
-                               confirmButtonCol = "#AEDEF4",
+                               confirmButtonCol = "#0d47a1",
                                timer = 0,
                                imageUrl = "",
                                animation = TRUE
@@ -1528,7 +1747,7 @@ main_server <- function(input, output, session) {
       gps_file<-gps_file[, .(durationNOBREAK=mean(durationNOBREAK, na.rm=T),
                              lat=mean(lat, na.rm=T),
                              long=mean(long, na.rm=T)), by=.(key)]
-      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "durationNOBREAK", path = fp())
+      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "durationNOBREAK", path = fpGADM())
       admShp<-st_transform(admShp, 4326)
       ## b) Answer Removed
     } else if (input$mapData == "Removals") {
@@ -1544,7 +1763,7 @@ main_server <- function(input, output, session) {
                                showConfirmButton = TRUE,
                                showCancelButton = FALSE,
                                confirmButtonText = "OK",
-                               confirmButtonCol = "#AEDEF4",
+                               confirmButtonCol = "#0d47a1",
                                timer = 0,
                                imageUrl = "",
                                animation = TRUE
@@ -1555,7 +1774,7 @@ main_server <- function(input, output, session) {
       gps_file<-gps_file[, .(Removals=.N,
                              lat=mean(lat, na.rm=T),
                              long=mean(long, na.rm=T)), by=.(key)]
-      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "Removals", path = fp())
+      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "Removals", path = fpGADM())
       admShp<-st_transform(admShp, 4326)
       ## c) Question Invalid
     } else if (input$mapData == "Invalids") {
@@ -1571,7 +1790,7 @@ main_server <- function(input, output, session) {
                                showConfirmButton = TRUE,
                                showCancelButton = FALSE,
                                confirmButtonText = "OK",
-                               confirmButtonCol = "#AEDEF4",
+                               confirmButtonCol = "#0d47a1",
                                timer = 0,
                                imageUrl = "",
                                animation = TRUE
@@ -1585,7 +1804,7 @@ main_server <- function(input, output, session) {
       gps_file<-gps_file[, .(Invalids=.N,
                              lat=mean(lat, na.rm=T),
                              long=mean(long, na.rm=T)), by=.(key)]
-      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "Invalids", path = fp())
+      admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "Invalids", path = fpGADM())
       admShp<-st_transform(admShp, 4326)
     }
     waiter::waiter_hide()
@@ -1609,38 +1828,38 @@ main_server <- function(input, output, session) {
   })
   ## 1. BASE MAP
   observeEvent(ADMSHP(),
-    {
-      m <- req(ADMSHP())
-      if (getOption("mapwidget.option") == "mapdeck") {
-        shiny::validate(need(m, message = F))
-        m$tempgr <- 1L
-        mapModuleSvr(
-          id = "baseMap",
-          updateMap = reactive({
-            m
-          }),
-          z_var = reactive("Aggregate"),
-          updateGroup = reactive("Aggregate"),
-          polyId = reactive(NULL),
-          transitions = list(
-            polygon = 2000,
-            fill_colour = 2000,
-            stroke_width = 2000,
-            elevation = 2000
-          )
-        )
-      } else if (getOption("mapwidget.option") == "leaflet") {
-        mapServer("baseMap_leaf",
-                  updateMap = reactive({
-                    m
-                  }),
-                  z_var = reactive("Aggregate"),
-                  updateGroup = reactive("Aggregate")
-        )
+               {
+                 m <- req(ADMSHP())
+                 if (getOption("mapwidget.option") == "mapdeck") {
+                   shiny::validate(need(m, message = F))
+                   m$tempgr <- 1L
+                   mapModuleSvr(
+                     id = "baseMap",
+                     updateMap = reactive({
+                       m
+                     }),
+                     z_var = reactive("Aggregate"),
+                     updateGroup = reactive("Aggregate"),
+                     polyId = reactive(NULL),
+                     transitions = list(
+                       polygon = 2000,
+                       fill_colour = 2000,
+                       stroke_width = 2000,
+                       elevation = 2000
+                     )
+                   )
+                 } else if (getOption("mapwidget.option") == "leaflet") {
+                   mapServer("baseMap_leaf",
+                             updateMap = reactive({
+                               m
+                             }),
+                             z_var = reactive("Aggregate"),
+                             updateGroup = reactive("Aggregate")
+                   )
 
-      }
-    },
-    ignoreInit = F
+                 }
+               },
+               ignoreInit = F
   )
 
 
