@@ -70,10 +70,7 @@ startupModalSRV <- function(id,
     })
 
     observeEvent(input$startup, {
-      uo <- req(useronly)
-      print(uo); print(input$user)
-
-      if (!uo && input$mapkey == "") {
+      if (!useronly && input$mapkey == "") {
         shinyalert::shinyalert(paste(apikeyhead),
           apikeymessage,
           closeOnEsc = TRUE,
@@ -89,7 +86,7 @@ startupModalSRV <- function(id,
           animation = TRUE
         )
         req(FALSE)
-      } else if (uo && input$user == "") {
+      } else if (input$user == "") {
         shinyalert::shinyalert(paste("User name missing!"),
           "You have not provided a user name. Since this is required
                                to store the files in your personal directory,
@@ -109,12 +106,12 @@ startupModalSRV <- function(id,
         req(FALSE)
       } else {
         # mapkey if selected
-        if (!uo) mapkey(input$mapkey)
+        if (!useronly) mapkey(input$mapkey)
         # user
         usr <- sanitize_string(input$user)
         user(usr)
       }
-    },ignoreInit = T)
+    },ignoreInit = F)
 
     return(
       list(

@@ -17,7 +17,7 @@
 #'
 #' @export
 runParaAppServer <- function(launch.browser = TRUE,
-                       mapwidget.option = c("leaflet", "mapdeck")) {
+                             mapwidget.option = c("leaflet", "mapdeck")) {
   shiny::addResourcePath("www", system.file("www", package = "susoparaviewer"))
   shiny::addResourcePath("rmdfiles", system.file("rmdfiles", package = "susoparaviewer"))
 
@@ -26,7 +26,7 @@ runParaAppServer <- function(launch.browser = TRUE,
 
   # get original options
   original_options <- list(
-    shiny.maxRequestSize = getOption("shiny.maxRequestSize"),
+    #shiny.maxRequestSize = getOption("shiny.maxRequestSize"),
     # You might want to store your original spinner.color.background if it's set somewhere in your code
     #spinner.color.background = getOption("spinner.color.background"),
     mapwidget.option = getOption("mapwidget.option")
@@ -42,7 +42,9 @@ runParaAppServer <- function(launch.browser = TRUE,
 
     # revert to original state at the end
     shiny::onStop(function() {
-      options(original_options)
+      if(!is.null(original_options)){
+        options(original_options)
+      }
     })
   }
   shiny::shinyApp(ui = susoparaviewer:::main_ui, server = susoparaviewer:::main_server, onStart = changeoptions)
