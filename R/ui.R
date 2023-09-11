@@ -21,7 +21,7 @@ main_ui <- function(request) {
     if (utils::packageVersion("shinyalert") < 3) shinyalert::useShinyalert(),
     waiter::use_waiter(),
     startupModalUI("startupModal"),
-    nav_bar_color = "blue-grey darken-1",
+    nav_bar_color = "blue darken-4",
     background_color = "white",
     title = "Survey Solutions Paradata Viewer",
     tags$br(),
@@ -40,7 +40,7 @@ main_ui <- function(request) {
       material_side_nav_tabs(
         side_nav_tabs = c(
           "Charts & Maps" = "charts",
-          "Source Data (including download" = "data",
+          "Source Data (including download)" = "data",
           "GPS tracking" = "tracking"
         ),
         icons = c("insert_chart", "explore", "location_searching")

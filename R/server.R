@@ -879,6 +879,7 @@ main_server <- function(input, output, session) {
   ##        3. MAP
   ######################################################
   ##  1. Average response time in Questionnaire Proces
+  timePlotEvent<-reactiveVal(FALSE)
   output$timePlot <- renderPlotly({
     parafile <- para_data_coll$para_data$AnswerSet
     shiny::validate(need(parafile, message = F))
@@ -963,11 +964,13 @@ main_server <- function(input, output, session) {
       x_lab_axis_val = "x",
       timeLine = TL
     )
+    timePlotEvent(TRUE)
     return(p)
   })
 
   ######################################################
   ##  2. Average Questionnaire Duration by Interviewer (30 fastest)
+  respPlotEvent<-reactiveVal(FALSE)
   output$respPlot <- renderPlotly({
     parafile <- para_data_coll$para_data$AnswerSet
     shiny::validate(
@@ -994,11 +997,13 @@ main_server <- function(input, output, session) {
       ordered_y = TRUE,
       x_title = "Average Completion Time (in min.)"
     )
+    respPlotEvent(TRUE)
     return(p)
   })
 
   ######################################################
   ##  3. Total Interview Competion time (fastest 30)
+  qTotPlotEvent<-reactiveVal(FALSE)
   output$qTotPlot <- renderPlotly({
     parafile <- para_data_coll$para_data$AnswerSet
     shiny::validate(
@@ -1021,10 +1026,12 @@ main_server <- function(input, output, session) {
       ordered_y = TRUE,
       x_title = "Total Response Time (in min.)"
     )
+    qTotPlotEvent(TRUE)
     return(p)
   })
   ######################################################
   ##  4. Fastest Actor
+  DevPlotEvent<-reactiveVal(FALSE)
   output$DevPlot <- renderPlotly({
     parafile <- para_data_coll$para_data$AnswerSet
     shiny::validate(
@@ -1046,10 +1053,12 @@ main_server <- function(input, output, session) {
       ordered_y = TRUE,
       x_title = "Deviation from Question Mean (in Sec.)"
     )
+    DevPlotEvent(TRUE)
     return(p)
   })
   ######################################################
   ##  5. Answer Removed Int
+  answRemIntEvent<-reactiveVal(FALSE)
   output$answRemInt <- renderPlotly({
     parafile <- para_data_coll$para_data$AnswerRemoved
     shiny::validate(
@@ -1070,10 +1079,12 @@ main_server <- function(input, output, session) {
       ordered_y = TRUE,
       x_title = "Number of Removals"
     )
+    answRemIntEvent(TRUE)
     return(p)
   })
   ######################################################
   ##  6. Questionnaire Invalid
+  invalidQuestEvent<-reactiveVal(FALSE)
   output$invalidQuest <- renderPlotly({
     parafile <- para_data_coll$para_data$QuestionDeclaredInvalid
     shiny::validate(
@@ -1095,6 +1106,7 @@ main_server <- function(input, output, session) {
       ordered_y = TRUE,
       x_title = "Number of Invalid Responses"
     )
+    invalidQuestEvent(TRUE)
     return(p)
   })
 
@@ -1104,7 +1116,7 @@ main_server <- function(input, output, session) {
   clickEvents1 <- reactiveValues(d = NULL, s = NULL)
   ##  7.1. EVENT FOR QUESTIONNAIRE
   observe({
-    req(para_data_coll$para_data)
+    req(timePlotEvent())
     s <- "WEEK"
     d <- event_data("plotly_click", source = s)
     if (!is.null(d)) {
@@ -1114,7 +1126,7 @@ main_server <- function(input, output, session) {
   })
   ## ii. Duration Plot
   observe({
-    req(para_data_coll$para_data)
+    req(qTotPlotEvent())
     s <- "Time per Interview (shortest/longest)"
     d <- event_data("plotly_click", source = s)
     if (!is.null(d)) {
@@ -1125,7 +1137,7 @@ main_server <- function(input, output, session) {
 
   ## ii. Invalid Plot
   observe({
-    req(para_data_coll$para_data)
+    req(invalidQuestEvent())
     s <- "Number of Invalid Responses"
     d <- event_data("plotly_click", source = s)
     if (!is.null(d)) {
@@ -1138,7 +1150,7 @@ main_server <- function(input, output, session) {
   clickEvents2 <- reactiveValues(d = NULL, s = NULL)
   ##  i. Aver Completion Plot
   observe({
-    req(para_data_coll$para_data)
+    req(respPlotEvent())
     s <- "Average Questionnaire Completion Time"
     d <- event_data("plotly_click", source = s)
     if (!is.null(d)) {
@@ -1148,7 +1160,7 @@ main_server <- function(input, output, session) {
   })
   ## ii. Pace Plot
   observe({
-    req(para_data_coll$para_data)
+    req(DevPlotEvent())
     s <- "Average Pace"
     d <- event_data("plotly_click", source = s)
     if (!is.null(d)) {
@@ -1158,7 +1170,7 @@ main_server <- function(input, output, session) {
   })
   ## iii. Remove Plot
   observe({
-    req(para_data_coll$para_data)
+    req(answRemIntEvent())
     s <- "Number of Response Removals"
     d <- event_data("plotly_click", source = s)
     if (!is.null(d)) {

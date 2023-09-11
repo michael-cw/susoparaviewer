@@ -113,13 +113,13 @@ rasMapOSM <- function(ras = NULL, z_var = "MOS") {
 ########################################################################################################
 ## scroll table
 
-styleActButtonActivate <- c("color: #FFFFFF; background-color: #546e7a;
-                  border-color: #546e7a; margin:0% 0% 0% 0%;")
+styleActButtonActivate <- c("color: #FFFFFF; background-color: #0d47a1;
+                  border-color: #0d47a1; margin:0% 0% 0% 0%;")
 styleDwlButton <- c("color: #FFFFFF;  width: 180px;background-color: #FFFFFF;
                   border-color: #FFFFFF;
                   margin:0 20% 0 20%;")
 
-invisibleButton <- c("color: #FFFFFF; background-color: #FFFFFF;
+invisibleButton <- c("color: #FFFFFF; background-color: #FFFFFF; visibility: hidden;
                   border-color: #FFFFFF; margin:0% 0% 0% 0%;height:2px;")
 
 

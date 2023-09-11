@@ -28,7 +28,7 @@
 #' @importFrom mapdeck add_arc add_grid add_path add_polygon add_scatterplot clear_arc clear_grid clear_polygon clear_scatterplot mapdeck mapdeck_style mapdeck_update mapdeck_view mapdeckOutput renderMapdeck
 #' @importFrom methods as
 #' @importFrom officer block_list body_add body_add_break body_add_gg body_add_par body_add_table external_img fp_border fp_par fp_text fpar ftext read_docx run_linebreak set_doc_properties
-#' @importFrom plotly add_annotations add_lines add_trace event_data layout plot_ly plotlyOutput renderPlotly select
+#' @importFrom plotly add_annotations add_lines add_trace event_data event_register layout plot_ly plotlyOutput renderPlotly select
 #' @importFrom raster as.data.frame as.factor as.list coordinates getData levels mean merge modal nrow print res subset unique writeRaster
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom readr write_file
