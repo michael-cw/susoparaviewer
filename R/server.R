@@ -389,7 +389,6 @@ main_server <- function(input, output, session) {
   observeEvent(input$dataLoad, {
     if (input$dataLoad == "LocalFile") {
       paradir<-req(fpPARA())
-      print(paradir)
 
       shinyalert::shinyalert(
         inputId = "localfile",
@@ -468,9 +467,6 @@ main_server <- function(input, output, session) {
     return(tableName)
   })
 
-  observe({
-    print(input$shpDirTable_rows_selected)
-  })
 
   paraDataFile <- reactive({
     if (input$dataLoad == "File") {
@@ -647,7 +643,6 @@ main_server <- function(input, output, session) {
       ############ A. From File
       filesel<-req(shp_id())
       paradir<-req(fpPARA())
-      print(filesel)
       withProgress(
         message = "Reading from local storage!",
         detail = "This may take a while...",
@@ -699,11 +694,7 @@ main_server <- function(input, output, session) {
     }
   })
 
-  observe({
-    print(input$gpsvar)
-    print(input$gpsvarmodal)
-    print(names(input$side_nav_tab_info))
-  })
+
   ########### 2. Transform Paradata  ##########################
   observe({
     dataFile <- req(paraDataFile())
