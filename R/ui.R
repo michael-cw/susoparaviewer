@@ -33,6 +33,37 @@ main_ui <- function(request) {
       #modal-fba285d0-e69b-072b-8c6f-33f90c89a607 {
         transform: scaleX(2) scaleY(2) !important;
       }
+      .shiny-notification {
+             width: 250px !important;
+             position:fixed;
+             top: 65px;
+             right: 10px;
+             color: #FFFFFF;
+             background-color: #0d47a1;
+             }
+
+      .shiny-notification-content-text {
+        overflow-wrap: break-word !important;
+      }
+
+      /*change color and opacity for warning */
+      .shiny-notification-warning {
+             background-color:#ff0f0f;
+             color: #FFFFFF;
+             opacity: 0.7;
+      }
+      .btn-file {
+              color: #FFFFFF;
+              background-color: #0d47a1;
+              width: 80%;
+              border-color: #0d47a1;
+              display: block;
+              margin-left: auto;
+              margin-right: auto;
+      }
+      .btn-file:hover {
+              background: #0d6ca1;
+      }
     "),
     material_side_nav(
       fixed = FALSE,
@@ -48,7 +79,6 @@ main_ui <- function(request) {
       br(), br(),
       br(),
       useShinyjs(),
-      useShinyalert(),
       material_row(
         material_column(
           width = 12,
@@ -394,7 +424,7 @@ main_ui <- function(request) {
               material_column(
                 width = 6,
                 actionButton("downloadData_ini",
-                  label = "Create DWL File", icon = icon("fa-download"),
+                  label = "Create DWL File", icon = icon("download"),
                   style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
                 )
               ),
@@ -404,7 +434,7 @@ main_ui <- function(request) {
                 width = 6,
                 shinyjs::hidden(
                   downloadButton("downloadData",
-                    label = "Download", icon = icon("fa-download"),
+                    label = "Download", icon = icon("download"),
                     style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
                   )
                 )
