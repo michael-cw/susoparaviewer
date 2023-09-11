@@ -1,4 +1,4 @@
-#' Start the Survey Solutions Paradata Viewer Application
+#' Start the Survey Solutions Paradata Viewer Application on a Shiny Server
 #'
 #' @description A wrappter function to start the application. Please make sure you have read the
 #' documentation on how to use the app.
@@ -16,7 +16,7 @@
 #'
 #'
 #' @export
-runParaApp <- function(launch.browser = TRUE,
+runParaAppServer <- function(launch.browser = TRUE,
                        mapwidget.option = c("leaflet", "mapdeck")) {
   shiny::addResourcePath("www", system.file("www", package = "susoparaviewer"))
   shiny::addResourcePath("rmdfiles", system.file("rmdfiles", package = "susoparaviewer"))
@@ -42,9 +42,8 @@ runParaApp <- function(launch.browser = TRUE,
 
     # revert to original state at the end
     shiny::onStop(function() {
-        options(original_options)
+      options(original_options)
     })
   }
-  appObj<-shiny::shinyApp(ui = main_ui, server = main_server, onStart = changeoptions)
-  shiny::runApp(appObj, launch.browser = launch.browser, quiet = T)
+  shiny::shinyApp(ui = susoparaviewer:::main_ui, server = susoparaviewer:::main_server, onStart = changeoptions)
 }

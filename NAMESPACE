@@ -2,6 +2,7 @@
 
 export("%>%")
 export(runParaApp)
+export(runParaAppServer)
 import(shiny, except=c(dataTableOutput, renderDataTable))
 importFrom(DT,dataTableOutput)
 importFrom(DT,datatable)
