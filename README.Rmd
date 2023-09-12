@@ -43,7 +43,12 @@ The Survey Solutions Paradata Viewer Application[^1] is part of a comprehensive 
 
 7. **Direct review of interviews/interviewers**: Allows you to directly connect to the Survey Solutions server and review interviews and interviewers.
 
-8. **Report creation**: Generates a full paradata report as a word document at the *questionnaire* as well as at the *interviewer* level.
+8. **Report creation**: Generates a full paradata report as a word document at the:
+
+    * *Questionnaire* level,
+    * *Interviewer* level,
+    * *Map* level[^3].
+    
 
 
 ## Installation
@@ -111,4 +116,6 @@ Please continue to check for updates, as we are constantly working to improve th
 [^1]: Funding was received from the [Joint Development Data Center on Forced Displacement](https://www.jointdatacenter.org/) .
 
 [^2]: Only available if geographic coordinates had been collected.
+
+[^3]: Only available if geographic coordinates had been collected.
 </div>

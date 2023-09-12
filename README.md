@@ -55,8 +55,11 @@ the interviewer and the geographic level.
     interviewers.
 
 8.  **Report creation**: Generates a full paradata report as a word
-    document at the *questionnaire* as well as at the *interviewer*
-    level.
+    document at the:
+
+    - *Questionnaire* level,
+    - *Interviewer* level,
+    - *Map* level[^3].
 
 ## Installation
 
@@ -131,5 +134,7 @@ improve the application.
     Forced Displacement](https://www.jointdatacenter.org/) .
 
 [^2]: Only available if geographic coordinates had been collected.
+
+[^3]: Only available if geographic coordinates had been collected.
 
     </div>
