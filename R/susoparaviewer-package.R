@@ -18,7 +18,7 @@
 #' @importFrom foreach foreach `%dopar%`
 #' @importFrom future plan sequential
 #' @importFrom ggmap get_map get_stamenmap ggmap
-#' @importFrom ggplot2 aes alpha coord_equal element_blank element_line element_rect element_text geom_sf scale_color_continuous scale_fill_continuous scale_fill_viridis_c theme theme_bw unit
+#' @importFrom ggplot2 aes alpha coord_equal element_blank element_line element_rect element_text geom_sf scale_color_continuous scale_color_discrete scale_fill_continuous scale_fill_discrete scale_fill_viridis_c theme theme_bw unit
 # #' @importFrom graphics layout
 #' @importFrom grDevices colorRampPalette
 #' @importFrom httr authenticate content GET POST timeout write_disk
@@ -27,7 +27,7 @@
 #' @importFrom lubridate hour isoweek mday month wday as_datetime hms
 #' @importFrom mapdeck add_arc add_grid add_path add_polygon add_scatterplot clear_arc clear_grid clear_polygon clear_scatterplot mapdeck mapdeck_style mapdeck_update mapdeck_view mapdeckOutput renderMapdeck
 #' @importFrom methods as
-#' @importFrom officer block_list body_add body_add_break body_add_gg body_add_par body_add_table external_img fp_border fp_par fp_text fpar ftext read_docx run_linebreak set_doc_properties
+#' @importFrom officer block_list body_add body_add_break body_add_gg body_add_par body_add_table external_img fp_border fp_par fp_text fpar ftext read_docx run_linebreak set_doc_properties read_pptx add_slide ph_with ph_location_label ph_location_type
 #' @importFrom plotly add_annotations add_lines add_trace event_data event_register layout plot_ly plotlyOutput renderPlotly select
 #' @importFrom raster as.data.frame as.factor as.list coordinates getData levels mean merge modal nrow print res subset unique writeRaster
 #' @importFrom RColorBrewer brewer.pal
@@ -52,7 +52,7 @@ NULL
 if(getRversion() >= "3.3.0")  {
   utils::globalVariables(c(
     "i", "NAME",
-    "long", "lat", "OBJECTID", "NAME_2",
+    "long", "lat", "OBJECTID", "NAME_2", "Removals",
     "var_resp", "V1", "V2", "V3", "dateTime", "wDAY", "mDAY", "MONTH", "WEEK", "role", "action", "responsible",
     "action", "rid", "breaks", "resp_time",
     "QuestionnaireIdVersion",
@@ -74,7 +74,7 @@ if(getRversion() >= "3.3.0")  {
     "m_diff_dev",
     "Mean_Deviation", "Invalids", "key2", "surveyDay", "duration", "startHour", "mean_duration", "mean_durationNOBREAK",
     "mean_RespTime", "tot", "durationNOBREAK_sec", "response", "response1", "response2", "count", "counter",
-    "m_resp_time_var", "duration_sec", ".data"
+    "m_resp_time_var", "duration_sec", ".data", "AverageTimePerInterview", "NumberOfInterviews"
   ))
 
 

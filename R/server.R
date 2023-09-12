@@ -643,14 +643,22 @@ main_server <- function(input, output, session) {
       ############ A. From File
       filesel<-req(shp_id())
       paradir<-req(fpPARA())
+
+      # get files in dir
+      paradir<-file.path(paradir, filesel)
+      ch<-tools::list_files_with_exts(paradir, exts = "fst", full.names = T)
+      if(length(ch)==0) {
+        shiny::showNotification(
+          "No data in storage! Please select another file!", type = "error"
+        )
+        req(FALSE)
+      }
+      # load files
       withProgress(
         message = "Reading from local storage!",
         detail = "This may take a while...",
         value = 0,
         {
-          # get files in dir
-          paradir<-file.path(paradir, filesel)
-          ch<-tools::list_files_with_exts(paradir, exts = "fst", full.names = T)
           dataFile<-list()
           # read files
           for(i in ch) {
@@ -664,31 +672,6 @@ main_server <- function(input, output, session) {
 
         }
       )
-
-      ## show variable selection for gps
-      # varnames<-c("NONE", unique(dataFile[action=="AnswerSet", "var"]))
-      # shinyalert::shinyalert(
-      #   inputId = "gpsvarmodal",
-      #   title = "Select GPS variable for mapping.",
-      #   text = tagList(
-      #     shiny::selectInput(
-      #       inputId = "gpsvar",
-      #       label = "",
-      #       choices = varnames
-      #     )
-      #   ),
-      #   closeOnEsc = TRUE,
-      #   closeOnClickOutside = FALSE,
-      #   html = TRUE,
-      #   type = "warning",
-      #   showConfirmButton = TRUE,
-      #   showCancelButton = FALSE,
-      #   confirmButtonText = "OK",
-      #   confirmButtonCol = "#AEDEF4",
-      #   timer = 0,
-      #   imageUrl = "",
-      #   animation = TRUE
-      # )
       return(dataFile)
 
     }
@@ -786,7 +769,6 @@ main_server <- function(input, output, session) {
         choices = ch,
         value = ch["AnswerSet"]
       )
-
       ##################################################################
       ##  2.1. Get Start/End date & DATE seletion (causes re-calculation)
       fromDate <- as.character(min(dataFile$AnswerSet$date, na.rm = T))
@@ -811,7 +793,7 @@ main_server <- function(input, output, session) {
       )
       para_data_coll$para_data<-dataFile
 
-      } else {
+    } else {
       # From SERVER-->no manipulation
       ##  Export DATA
       ch <- names(dataFile)
@@ -897,17 +879,13 @@ main_server <- function(input, output, session) {
     setkeyv(qPos, "var")
     setkeyv(parafile, "var")
     parafile <- qPos[parafile, on = "var"]
-    ## 2.2. Get slider inputs
-    #TL <- ifelse(length(unique(CHECKparafile$WEEK)) > 1, "WEEK", NULL)
-
-    #shiny::validate(need(!is.null(TL), message = "Number of provided observerations not sufficient!"))
+    # More than one week in survey period
     if (length(unique(parafile$WEEK)) > 1) {
       TL<-"WEEK"
       aval1 <- list()
       k <- 1
       for (step in unique((parafile$WEEK))) {
         ## i. subset data and aggregate
-        # print(step)
         parafile_tmp <- subset(parafile, WEEK == step)
 
         parafile_tmp <- parafile_tmp[, .(
@@ -920,10 +898,6 @@ main_server <- function(input, output, session) {
         parafile_tmp <- parafile_tmp[!is.na(counterMedian) & !is.nan(Av_ResponseTime)]
         parafile_tmp[, counter := 1:.N]
         setnames(parafile_tmp, "counter", "QuestionnaireProgression")
-        # if (length(parafile_tmp[,is.na(QuestionnaireProgression)])==nrow(parafile_tmp) |
-        #     length(parafile_tmp[,is.na(Av_ResponseTime)])==nrow(parafile_tmp)) next()
-        ## ii. creat the input data list
-        # if(length(parafile_tmp$QuestionnaireProgression)==0) k=k+1; next()
 
         aval1[[k]] <- list(
           visible = FALSE,
@@ -937,6 +911,7 @@ main_server <- function(input, output, session) {
         k <- k + 1
       }
     } else {
+      # only one week of survey period
       TL <- NULL
       parafile <- parafile[, .(
         Av_ResponseTime = round(mean(resp_time, na.rm = T), 2),
@@ -954,7 +929,6 @@ main_server <- function(input, output, session) {
     material_spinner_hide(session, "timePlot")
 
     ## With slider
-    CHECK <- aval1
     p <- plotlyLine(
       data_in = aval1, x = "QuestionnaireProgression", y = "Av_ResponseTime",
       title = "Time over Questionnaire Progress",
@@ -1368,8 +1342,6 @@ main_server <- function(input, output, session) {
     setkeyv(qPos, "var")
     setkeyv(parafile, "var")
     parafile <- qPos[parafile, on = "var"]
-    ## 2.2. Get slider inputs
-    TL <- ifelse(length(unique(parafile$WEEK)) > 1, "WEEK", NULL)
 
     parafile <- parafile[, .(
       Av_ResponseTime = round(mean(resp_time, na.rm = T), 2),
@@ -1393,8 +1365,6 @@ main_server <- function(input, output, session) {
     setkeyv(qPos, "var")
     setkeyv(parafile, "var")
     parafile <- qPos[parafile, on = "var"]
-    ## 2.2. Get slider inputs
-    TL <- ifelse(length(unique(parafile$WEEK)) > 1, "WEEK", NULL)
 
     parafile <- parafile[, .(
       mean_duration = round(mean(duration, na.rm = T), 2),
@@ -1419,6 +1389,66 @@ main_server <- function(input, output, session) {
     ), by = .(responsible)]
     return((parafile))
   })
+  ## 4. Map
+  msumary <- reactive({
+    gps_file<-req(para_data_coll$para_data$AnswerSet)
+    req(fpGADM())
+
+    gps_file <- gps_file[breaks == 0]
+    gps_file <- gps_file[!is.na(resp_time)]
+    gps_file <- gps_file[resp_time <= 120]
+
+    if(!("lat" %in% names(gps_file))) {
+      shinyalert::shinyalert(paste("No GPS data available!"),
+                             "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                             closeOnEsc = TRUE,
+                             closeOnClickOutside = TRUE,
+                             html = FALSE,
+                             type = "error",
+                             showConfirmButton = TRUE,
+                             showCancelButton = FALSE,
+                             confirmButtonText = "OK",
+                             confirmButtonCol = "#0d47a1",
+                             timer = 0,
+                             imageUrl = "",
+                             animation = TRUE
+      )
+      req(FALSE)
+    }
+
+    # Process Completion Time
+    gps_file<-gps_file[, .(durationNOBREAK=mean(durationNOBREAK, na.rm=T),
+                           lat=mean(lat, na.rm=T),
+                           long=mean(long, na.rm=T)), by=.(key)]
+    admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "durationNOBREAK", path = fpGADM())
+    # Process Removals
+    gps_file_rem<<-para_data_coll$para_data$AnswerRemoved
+    if(!is.null(gps_file_rem)) {
+      gps_file_rem<-gps_file_rem[, .(Removals=.N,
+                                     lat=mean(lat, na.rm=T),
+                                     long=mean(long, na.rm=T)), by=.(key)]
+      dt<-copy(gps_file_rem)
+      dt<-dt[!is.na(long)&!is.na(lat)]
+      dt<-dt[!is.nan(long)&!is.nan(lat)]
+      #sp::coordinates(dt)<-~long+lat
+      dt<-sf::st_as_sf(dt, coords = c("long", "lat"), crs = 4326)
+      admShp<-st_transform(admShp, 3857)
+      dt<-sf::st_transform(dt, 3857)
+      dt<-dt[,"Removals"]
+      dt<-st_join(dt, admShp, join=st_within)
+      dt<-as.data.frame(dt[,c("NAME_2", "Removals")])
+      dt<-data.table(dt)
+      dt<-dt[,.(Removals=round(mean((Removals), na.rm=T), 2)), by=.(NAME_2)]
+      admShp<-merge(admShp, dt, by=c("NAME_2"))
+
+    }
+
+    admShp<-st_transform(admShp, 4326)
+    data.table::setnames(admShp, "Aggregate", "AverageTimePerInterview")
+    data.table::setnames(admShp, "Count", "NumberOfInterviews")
+
+    return((admShp))
+  })
   ##################################################################################################
   ##                                            REPORTS FOR DOWNLOAD
   ## REPORT FOR QUESTIONNAIRE (P1)
@@ -1426,6 +1456,7 @@ main_server <- function(input, output, session) {
   SUM_COUNTY <- reactiveVal(NULL)
   SUM_QUEST <- reactiveVal(NULL)
   report_content_q <- reactive({
+    req(qsumary())
     fpwww<-system.file("www", package = "susoparaviewer")
     ## CREATE POP SEGMENT LIST
     pop_segment <- list()
@@ -1513,11 +1544,17 @@ main_server <- function(input, output, session) {
   })
   #################################################
   ## DOWNLOAD QUESTIONNAIRE REPORT
-  callModule(dwl_reportSRV,
-             "dwl_q_report",
-             rname = "Survey Solutions",
-             content = report_content_q,
-             creator = paste0("Survey Solutions Paradata Viewer")
+  # callModule(dwl_reportSRV,
+  #            "dwl_q_report",
+  #            rname = "Survey Solutions",
+  #            content = report_content_q,
+  #            creator = paste0("Survey Solutions Paradata Viewer")
+  # )
+  dwl_reportSRV("dwl_q_report",
+                fn = "Survey Solutions Paradata Viewer",
+                wordstyles = file.path(system.file("rmdfiles", package = "susoparaviewer"), "FINAL_report_for_download.docx"),
+                content = report_content_q,
+                type = "word"
   )
 
   ## iI. INTERVIEWER
@@ -1542,7 +1579,14 @@ main_server <- function(input, output, session) {
       ##  2.1. Get Question order based on median
       parafile <- parafile[!is.na(counter)]
       parafile_sub <- parafile[responsible == d$key]
-      parafile_sub[, rid := as.numeric(rid)]
+
+      # if no roster is present set rid counter to 0
+      if("rid" %in% names(parafile_sub)) {
+        parafile_sub[, rid := as.numeric(rid)]
+      } else {
+        parafile_sub[, rid := 0]
+      }
+
       material_spinner_show(session, "intPlotTab")
       tab <- parafile_sub[, .(
         Av_DurationQuestionnaire = round(mean(durationNOBREAK, na.rm = T), 2),
@@ -1614,6 +1658,7 @@ main_server <- function(input, output, session) {
   #################################################
   ## REPORT FOR INTERVIEWER
   report_content_int <- reactive({
+    req(intsumary())
     fpwww<-system.file("www", package = "susoparaviewer")
     ## main list
     pop_segment <- list()
@@ -1700,11 +1745,11 @@ main_server <- function(input, output, session) {
   })
 
   ## DOWNLOAD QUESTIONNAIRE REPORT
-  callModule(dwl_reportSRV,
-             "dwl_int_report",
-             rname = "Survey Solutions Paradata Viewer",
-             content = report_content_int,
-             creator = paste0("Survey Solutions Paradata Viewer")
+  dwl_reportSRV("dwl_int_report",
+                fn = "Survey Solutions Paradata Viewer",
+                wordstyles = file.path(system.file("rmdfiles", package = "susoparaviewer"), "FINAL_report_for_download.docx"),
+                content = report_content_int,
+                type = "word"
   )
 
   ###################################################################################################
@@ -1726,7 +1771,6 @@ main_server <- function(input, output, session) {
     ##  a) Completion Time
     if (input$mapData == "Time") {
       gps_file<-para_data_coll$para_data$AnswerSet
-
       #modal if no gps
       if(!("lat" %in% names(gps_file))) {
         shinyalert::shinyalert(paste("No GPS data available!"),
@@ -1866,7 +1910,6 @@ main_server <- function(input, output, session) {
   )
 
 
-
   ##  3. Store Click Map
   mapTabData <- eventReactive(input$admMap_shape_click, {
     p <- input$admMap_shape_click
@@ -1898,15 +1941,101 @@ main_server <- function(input, output, session) {
   })
 
   report_content_m <- reactive({
-    paste("NOT Yet")
+    req(msumary())
+    fpwww<-system.file("www", package = "susoparaviewer")
+    ## main list
+    pop_segment <- list()
+
+
+    #################################################
+    ## TITLE
+    qTitle <- paste("Survey Solutions Paradata Report Map")
+    ## Fonts title
+    fp_title <- fp_text(color = "#546e7a", font.size = 20, bold = T)
+    fp_title_sty <- fp_par(
+      text.align = "center", padding.bottom = 1,
+      border.bottom = fp_border(color = "black")
+    )
+    fp_stitle <- fp_text(color = "#546e7a", font.size = 14, bold = F)
+    fp_stitle_sty <- fp_par(text.align = "center", padding.bottom = 0)
+    ##
+    pop_segment$doc_title <- block_list(
+      fpar(ftext(qTitle, prop = fp_title),
+           run_linebreak(), run_linebreak(),
+           fp_p = fp_par(text.align = "center")
+      ),
+      fpar(ftext("Survey Solutions Quality Report Tools", prop = fp_stitle), fp_p = fp_stitle_sty),
+      fpar(ftext(as.character(Sys.Date()), prop = fp_stitle),
+           run_linebreak(), run_linebreak(),
+           run_linebreak(), run_linebreak(),
+           fp_p = fp_stitle_sty
+      ),
+      fpar(
+        external_img(src = file.path(fpwww, "suso_wb.png"), height = 1.06 * 2, width = 1.39 * 2),
+        fp_p = fp_par(text.align = "center", padding.top = 5)
+      )
+    )
+    ####################
+    ## SECTION TITLE
+    pop_segment$sec_title <- list(
+      sec1 = "Total Summary",
+      sec2 = "Summary Table of Individual Areas",
+      sec3 = "Area Maps"
+    )
+
+    ##################
+    ## SECTION Text
+    pop_segment$sec_para <- list(
+      sec1 = list(
+        para1 = freestyler(""),
+        para2 = freestyler("")
+      ),
+      sec2 = list(
+        para1 = freestyler(""),
+        para2 = freestyler("")
+      ),
+      sec3 = list(
+        para1 = freestyler(""),
+        para2 = freestyler(""),
+        para3 = freestyler("")
+        )
+    )
+    #################################################
+    ## TABLE
+    msumaryDT<-data.table::as.data.table(msumary() %>% sf::st_set_geometry(NULL))
+    msumaryDT<-msumaryDT[,.(NAME_2, AverageTimePerInterview, NumberOfInterviews, Removals)]
+    qsumaryall <- msumaryDT[, tot := "Overall"][, .(
+      Av_CompletionTime = mean(AverageTimePerInterview),
+      N_interview = sum(NumberOfInterviews)
+    ), by = .(tot)]
+    setnames(qsumaryall, "tot", ".")
+    pop_segment$sec_table <- list(
+      sec1 = list(para1 = as.data.frame(qsumaryall)),
+      sec2 = list(para1 = as.data.frame(msumaryDT)),
+      sec3 = list(para1 = NULL, para2 = NULL)
+    )
+    ## map
+    gr_para1_1 <- shpMapOSM_cont(msumary(), "AverageTimePerInterview")
+    gr_para1_2 <- shpMapOSM_cont(msumary(), "NumberOfInterviews")
+    gr_para1_3 <- shpMapOSM_cont(msumary(), "Removals")
+    pop_segment$sec_graph <- list(
+      sec1 = NULL,
+      sec2 = NULL,
+      sec3 = list(
+        para1 = gr_para1_1,
+        para2 = gr_para1_2,
+        para3 = gr_para1_3
+      )
+    )
+    return(pop_segment)
   })
 
-  ## DOWNLOAD QUESTIONNAIRE REPORT
-  callModule(dwl_reportSRV,
-             "dwl_m_report",
-             rname = "Survey Solutions Paradata Viewer",
-             content = report_content_m,
-             creator = paste0("Survey Solutions Paradata Viewer")
+  ## DOWNLOAD MAP REPORT
+  dwl_reportSRV("dwl_m_report",
+                fn = "Survey Solutions Paradata Viewer",
+                wordstyles = file.path(system.file("rmdfiles", package = "susoparaviewer"), "FINAL_report_for_download.docx"),
+                content = report_content_m,
+                type = "word"
   )
 
   ###################################################################################################
@@ -1949,67 +2078,25 @@ main_server <- function(input, output, session) {
   })
   ######################################################
   ##  2. DOWNLOAD paradata
-  ##  2.1. INITIATE m action
-  fs1 <- reactiveVal()
-  observeEvent(input$downloadData_ini, {
-    fs <- paste("Paradata-", Sys.time(), ".csv", sep = "")
-    fs.zip <- paste("Paradata-", Sys.time(), ".zip", sep = "")
-    frame_data <- para_data_coll$para_data
-    ## Clear TMP dir
-    unlink(paste0(tempdir(), "/*"))
-
-    temp.dir <- tempdir()
-    shiny::validate(need(frame_data, message = F))
-
-    withProgress(
-      message = paste("Preparing data for download"),
-      value = 0,
-      {
-        wdOld <- getwd()
-        setwd(temp.dir)
-        ## i. get all files
-        allFiles <- para_data_coll$para_data
-
-        shiny::validate(need(allFiles, message = F))
-        all_names <- names(allFiles)
-        ## iii. loop to write the files directly in wd
-        ##      (in this case first csv to avoide UTF8 problems)
-        ## withprogress
-        fs <- character(0)
-        for (i in all_names) {
-          finalFile <- allFiles[[i]]
-          path <- file.path(paste0(i, ".csv"))
-          if (nrow(finalFile) == 0) next()
-          fs <- c(fs, path)
-          fwrite(finalFile, path)
-        }
-        zip(zipfile = fs.zip, files = fs)
-        fs1(fs.zip)
-      }
-    )
-    # if(file.exists(fs.zip)) {runjs("$('#downloadData')[1].click();")}
-    toggleElement("downloadData", condition = file.exists(fs.zip))
-    setwd(wdOld)
+  # 1. build data
+  fileParaDWL <- reactive({
+    parafile <- req(para_data_coll$para_data)
+    fileSel<-req(input$file_select_view)
+    parafile<-parafile[[fileSel]]
+    return(parafile)
   })
-  output$downloadData <- downloadHandler(
-    filename = function() {
-      paste("Paradata", Sys.time(), ".zip", sep = "")
-    },
-    content = function(file) {
-      withProgress(
-        message = paste("Downloading Data..."),
-        value = 0,
-        {
-          wdOld <- getwd()
-          setwd(tempdir())
-          fs.zip <- fs1()
-          shiny::validate(need(file.exists(fs.zip), message = F))
-          on.exit(setwd(wdOld))
-          file.copy(fs.zip, file)
-        }
-      )
-    },
-    contentType = "application/zip"
+  fileNameParaDWL <- reactive({
+    fileSel<-req(input$file_select_view)
+    paste("Paradata", fileSel,
+          stringr::str_remove_all(Sys.time(), "([:punct:])|([:space:])"),
+          sep = "_"
+    )
+  })
+
+  # 2. Download data module
+  download_csv_server("para_download",
+                      file_name = fileNameParaDWL,
+                      content = fileParaDWL
   )
 
 

@@ -127,8 +127,8 @@ main_ui <- function(request) {
                   depth = 4,
                   plotlyOutput("qTotPlot", width = "100%"),
                   material_radio_button("shortLong", "Shortest / longest (maximum 30 interviews)",
-                    c("Shorter", "Longer"),
-                    color = "#0d47a1"
+                                        c("Shorter", "Longer"),
+                                        color = "#0d47a1"
                   )
                 )
               ),
@@ -139,8 +139,8 @@ main_ui <- function(request) {
                   depth = 4,
                   plotlyOutput("invalidQuest", width = "100%"),
                   material_radio_button("invalHighLow", "Most/Least number of invalids (max. 30 interviews)",
-                    c("Highest", "Lowest"),
-                    color = "#0d47a1"
+                                        c("Highest", "Lowest"),
+                                        color = "#0d47a1"
                   )
                 )
               )
@@ -170,7 +170,7 @@ main_ui <- function(request) {
               material_column(width = 1)
             ),
             dwl_reportUI("dwl_q_report",
-              label = "Download the full report"
+                         btnlabel = "Download the full report"
             )
           ),
           ############# Interviewer ###############################################
@@ -184,8 +184,8 @@ main_ui <- function(request) {
                   depth = 4,
                   plotlyOutput("respPlot"),
                   material_radio_button("respfastSlow", "Fastest / Slowest (maximum 30 interviewers)",
-                    c("Fast" = "Fast1", "Slow" = "Slow1"),
-                    color = "#0d47a1"
+                                        c("Fast" = "Fast1", "Slow" = "Slow1"),
+                                        color = "#0d47a1"
                   )
                 )
               ),
@@ -196,8 +196,8 @@ main_ui <- function(request) {
                   depth = 4,
                   plotlyOutput("DevPlot"),
                   material_radio_button("devfastSlow", "Fastest / Slowest (maximum 30 interviewers)",
-                    c("Fast" = "Fast2", "Slow" = "Slow2"),
-                    color = "#0d47a1"
+                                        c("Fast" = "Fast2", "Slow" = "Slow2"),
+                                        color = "#0d47a1"
                   )
                 )
               ),
@@ -208,8 +208,8 @@ main_ui <- function(request) {
                   depth = 4,
                   plotlyOutput("answRemInt"),
                   material_radio_button("answRemHighLow", "Fewest / least number of response eliminations (maximum 30 interviewers)",
-                    c("Most" = "Most3", "Least" = "Least3"),
-                    color = "#0d47a1"
+                                        c("Most" = "Most3", "Least" = "Least3"),
+                                        color = "#0d47a1"
                   )
                 )
               )
@@ -236,7 +236,7 @@ main_ui <- function(request) {
               material_column(width = 1)
             ),
             dwl_reportUI("dwl_int_report",
-              label = "Download the full report"
+                         btnlabel = "Download the full report"
             )
           ),
           ############################ MAP #################################
@@ -250,18 +250,18 @@ main_ui <- function(request) {
                   depth = 4,
                   material_dropdown("mapData",
                                     "Select Data to display",
-                    c("",
-                      "Time" = "Time",
-                      "Removals" = "Removals",
-                      "Invalids" = "Invalids"
-                    ),
-                    color = "#0d47a1"
+                                    c("",
+                                      "Time" = "Time",
+                                      "Removals" = "Removals",
+                                      "Invalids" = "Invalids"
+                                    ),
+                                    color = "#0d47a1"
                   ),
                   material_dropdown("mapSource",
-                    "Which Input Map?",
-                    c("GADM", "Landsat", "Own Map"),
-                    selected = "GADM",
-                    color = "#0d47a1"
+                                    "Which Input Map?",
+                                    c("GADM", "Landsat", "Own Map"),
+                                    selected = "GADM",
+                                    color = "#0d47a1"
                   )
                 ),
                 material_card(
@@ -289,7 +289,7 @@ main_ui <- function(request) {
               )
             ),
             dwl_reportUI("dwl_m_report",
-              label = "Download the full report"
+                         btnlabel = "Download the full report"
             )
           )
         )
@@ -305,16 +305,11 @@ main_ui <- function(request) {
             title = "",
             depth = 4,
             material_radio_button("dataLoad", "How do you want to load the data?",
-              c("File", "Server", "LocalFile"), "File",
-              color = "#0d47a1"
+                                  c("File", "Server", "LocalFile"), "File",
+                                  color = "#0d47a1"
             ),
             conditionalPanel(
               "input.dataLoad=='File'",
-              # material_file_input("file1",
-              #   "Upload ORIGINAL ZIP FILE with
-              #                             Paradata from your Survey Solutions Server",
-              #   color = "#0d47a1"
-              # )
               zipFileInput_ui(id = "file1",
                               label = "Upload ORIGINAL ZIP FILE with Paradata from your Survey Solutions Server",
                               accept = "application/zip")
@@ -359,11 +354,11 @@ main_ui <- function(request) {
                   material_column(
                     width = 6,
                     numericInput("suso.refresh",
-                      "Refresh Interval (Minutes, max. 1440/24h)",
-                      value = 60,
-                      min = 30,
-                      max = 1440,
-                      step = 30
+                                 "Refresh Interval (Minutes, max. 1440/24h)",
+                                 value = 60,
+                                 min = 30,
+                                 max = 1440,
+                                 step = 30
                     ), br(), br()
                   )
                 ),
@@ -371,17 +366,17 @@ main_ui <- function(request) {
                   material_column(
                     width = 6,
                     material_button("suso.save",
-                      "Save Admin Settings",
-                      color = "blue darken-4",
-                      icon = "save"
+                                    "Save Admin Settings",
+                                    color = "blue darken-4",
+                                    icon = "save"
                     )
                   ),
                   material_column(
                     width = 6,
                     material_button("suso.refresh.now",
-                      "Refresh Now",
-                      color = "blue darken-4",
-                      icon = "cloud_download"
+                                    "Refresh Now",
+                                    color = "blue darken-4",
+                                    icon = "cloud_download"
                     )
                   )
                 ),
@@ -411,10 +406,10 @@ main_ui <- function(request) {
               )
             ),
             material_dropdown("file_select_view",
-              "Please select the paradata file",
-              choices = c("(Up)Load Data First!"),
-              multiple = F,
-              color = "#0d47a1"
+                              "Please select the paradata file",
+                              choices = c("(Up)Load Data First!"),
+                              multiple = F,
+                              color = "#0d47a1"
             ),
             helpText("ATTENTION: Data viewer does not show all data due to space reason.
                                The download file contains all."),
@@ -422,22 +417,16 @@ main_ui <- function(request) {
             br(),
             material_row(
               material_column(
-                width = 6,
-                actionButton("downloadData_ini",
-                  label = "Create DWL File", icon = icon("download"),
-                  style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
-                )
+                width = 3
               ),
-              #######################    File info         #######################
-
               material_column(
                 width = 6,
-                shinyjs::hidden(
-                  downloadButton("downloadData",
-                    label = "Download", icon = icon("download"),
-                    style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
-                  )
-                )
+                dwl_dataUI("para_download",
+                           "Download Paradata",
+                           style = "color: #FFFFFF;width: 100%;background-color: #0d47a1;border-color: #2e6da4")
+              ),
+              material_column(
+                width = 3
               )
             )
           )
@@ -463,8 +452,8 @@ main_ui <- function(request) {
             conditionalPanel(
               "input.pass == 'Tracker1234'|input.pass == 'RomaniaLFS2018'",
               material_switch("loadtrack", "Load Interviewer Tracks",
-                off_label = "No", on_label = "Yes",
-                initial_value = FALSE
+                              off_label = "No", on_label = "Yes",
+                              initial_value = FALSE
               ),
               br(), br(),
               br(),
@@ -488,20 +477,20 @@ main_ui <- function(request) {
                   material_column(
                     width = 6,
                     numericInput("acc",
-                      "Desired Precision (m, max. 1000)?",
-                      min = 5,
-                      max = 1000,
-                      step = 5,
-                      value = 15
+                                 "Desired Precision (m, max. 1000)?",
+                                 min = 5,
+                                 max = 1000,
+                                 step = 5,
+                                 value = 15
                     )
                   ),
                   material_column(
                     width = 6,
                     numericInput("trackRefresh",
-                      "Reload tracking data every (in seconds):",
-                      value = 60,
-                      min = 30,
-                      max = 7200
+                                 "Reload tracking data every (in seconds):",
+                                 value = 60,
+                                 min = 30,
+                                 max = 7200
                     )
                   )
                 ),
@@ -509,18 +498,18 @@ main_ui <- function(request) {
                   material_column(
                     width = 6,
                     material_switch("trackMode",
-                      initial_value = TRUE,
-                      "Which tracking Software?",
-                      on_label = "Owntracks",
-                      off_label = "GPSlogger"
+                                    initial_value = TRUE,
+                                    "Which tracking Software?",
+                                    on_label = "Owntracks",
+                                    off_label = "GPSlogger"
                     )
                   ),
                   material_column(
                     width = 6,
                     textInput("trackingIP",
-                      "Please provide server address and port
+                              "Please provide server address and port
                                                                (i.e. IP:PORT)",
-                      value = "34.224.75.201:1883"
+                              value = "34.224.75.201:1883"
                     )
                   )
                 ),
@@ -553,8 +542,8 @@ main_ui <- function(request) {
                     material_column(
                       width = 6, br(),
                       downloadButton("downloadOwnTrConfig",
-                        label = "Download Owntracks\n Configuration Files",
-                        style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
+                                     label = "Download Owntracks\n Configuration Files",
+                                     style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
                       )
                     )
                   )
@@ -568,7 +557,7 @@ main_ui <- function(request) {
                     material_column(
                       width = 6,
                       material_number_box("gpsLoggUser", "How many GPSlogger configuration files are required?",
-                        min_value = 0, max_value = 999, initial_value = 1, color = "#0d47a1"
+                                          min_value = 0, max_value = 999, initial_value = 1, color = "#0d47a1"
                       ),
                       helpText("For tracking with GPSlogger, it requires only the total number of interviewers which will be tracked, as everybody receives the
                                                                        same configuration file. Identification is done by the device ID.")
@@ -582,8 +571,8 @@ main_ui <- function(request) {
                     material_column(
                       width = 6, br(),
                       downloadButton("downloadGPSLoggerConfig",
-                        label = "Download GPSlogger\n Configuration Files",
-                        style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
+                                     label = "Download GPSlogger\n Configuration Files",
+                                     style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
                       )
                     )
                   )
