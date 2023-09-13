@@ -8,6 +8,13 @@
 \description{
 A simple shiny application to to visualize Survey Solutions Paradata. The data can be viewed at the questionnaire, the interviewer or the geography level. The application also supports direct connection to the corresponding interview, as well as the production of a summary report.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://michael-cw.github.io/susoparaviewer/}
+}
+
+}
 \author{
 \strong{Maintainer}: Michael Wild \email{mwild@worldbank.org}
 
