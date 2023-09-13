@@ -1332,6 +1332,14 @@ main_server <- function(input, output, session) {
   qsumary <- reactive({
     parafile <- para_data_coll$para_data$AnswerSet
     shiny::validate(need(parafile, message = T))
+
+    waiter::waiter_show(
+      color = "rgba(13, 71, 161, 0.7)",
+      html = tagList(
+        waiter::spin_fading_circles(),
+        "Preparing Report Content ..."
+      )
+    )
     parafile <- parafile[breaks == 0]
     parafile <- parafile[!is.na(resp_time)]
     parafile <- parafile[resp_time <= 120]
@@ -1380,6 +1388,13 @@ main_server <- function(input, output, session) {
     parafile <- isumary()
     shiny::validate(need(parafile, message = T))
 
+    waiter::waiter_show(
+      color = "rgba(13, 71, 161, 0.7)",
+      html = tagList(
+        waiter::spin_fading_circles(),
+        "Preparing Report Content ..."
+      )
+    )
     parafile <- parafile[, .(
       mean_duration = round((mean(mean_duration, na.rm = T)), 2),
       mean_durationNOBREAK = round(mean(mean_durationNOBREAK, na.rm = T), 2),
@@ -1393,14 +1408,20 @@ main_server <- function(input, output, session) {
   msumary <- reactive({
     gps_file<-req(para_data_coll$para_data$AnswerSet)
     req(fpGADM())
-
+    waiter::waiter_show(
+      color = "rgba(13, 71, 161, 0.7)",
+      html = tagList(
+        waiter::spin_fading_circles(),
+        "Preparing Report Content ..."
+      )
+    )
     gps_file <- gps_file[breaks == 0]
     gps_file <- gps_file[!is.na(resp_time)]
     gps_file <- gps_file[resp_time <= 120]
 
     if(!("lat" %in% names(gps_file))) {
       shinyalert::shinyalert(paste("No GPS data available!"),
-                             "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                             "You have either selected the wrong variable, or your data does not contain any geographic coordinates.",
                              closeOnEsc = TRUE,
                              closeOnClickOutside = TRUE,
                              html = FALSE,
@@ -1422,7 +1443,7 @@ main_server <- function(input, output, session) {
                            long=mean(long, na.rm=T)), by=.(key)]
     admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "durationNOBREAK", path = fpGADM())
     # Process Removals
-    gps_file_rem<<-para_data_coll$para_data$AnswerRemoved
+    gps_file_rem<-para_data_coll$para_data$AnswerRemoved
     if(!is.null(gps_file_rem)) {
       gps_file_rem<-gps_file_rem[, .(Removals=.N,
                                      lat=mean(lat, na.rm=T),
@@ -1540,6 +1561,7 @@ main_server <- function(input, output, session) {
       sec3 = list(para1 = as.data.frame(isumary()))
     )
 
+    waiter::waiter_hide()
     return(pop_segment)
   })
   #################################################
@@ -1741,6 +1763,7 @@ main_server <- function(input, output, session) {
       sec2 = list(para1 = as.data.frame(intsumary()))
     )
 
+    waiter::waiter_hide()
     return(pop_segment)
   })
 
@@ -1774,7 +1797,7 @@ main_server <- function(input, output, session) {
       #modal if no gps
       if(!("lat" %in% names(gps_file))) {
         shinyalert::shinyalert(paste("No GPS data available!"),
-                               "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                               "You have either selected the wrong variable, or your data does not contain any geographic coordinates.",
                                closeOnEsc = TRUE,
                                closeOnClickOutside = TRUE,
                                html = FALSE,
@@ -1802,7 +1825,7 @@ main_server <- function(input, output, session) {
       #modal if no gps
       if(!("lat" %in% names(gps_file))) {
         shinyalert::shinyalert(paste("No GPS data available!"),
-                               "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                               "You have either selected the wrong variable, or your data does not contain any geographic coordinates.",
                                closeOnEsc = TRUE,
                                closeOnClickOutside = TRUE,
                                html = FALSE,
@@ -1829,7 +1852,7 @@ main_server <- function(input, output, session) {
       #modal if no gps
       if(!("lat" %in% names(gps_file))) {
         shinyalert::shinyalert(paste("No GPS data available!"),
-                               "You have either selected the wrong variable, or you data does not contain any geographic coordinates.",
+                               "You have either selected the wrong variable, or your data does not contain any geographic coordinates.",
                                closeOnEsc = TRUE,
                                closeOnClickOutside = TRUE,
                                html = FALSE,
@@ -1865,11 +1888,11 @@ main_server <- function(input, output, session) {
   output$MAP_UI <- shiny::renderUI({
     if (getOption("mapwidget.option") == "mapdeck") {
       tagList(
-        mapModuleUI("baseMap", height = "80vh")
+        mapModuleUI("baseMap", height = "70vh")
       )
     } else if (getOption("mapwidget.option") == "leaflet") {
       tagList(
-        mapUI("baseMap_leaf", height = "80vh")
+        mapUI("baseMap_leaf", height = "70vh")
       )
     }
   })
@@ -2027,6 +2050,10 @@ main_server <- function(input, output, session) {
         para3 = gr_para1_3
       )
     )
+
+    ## end of content preparation close waiter
+    waiter::waiter_hide()
+
     return(pop_segment)
   })
 

@@ -170,7 +170,7 @@ main_ui <- function(request) {
               material_column(width = 1)
             ),
             dwl_reportUI("dwl_q_report",
-                         btnlabel = "Download the full report"
+                         btnlabel = "Download Questionnaire Report"
             )
           ),
           ############# Interviewer ###############################################
@@ -236,7 +236,7 @@ main_ui <- function(request) {
               material_column(width = 1)
             ),
             dwl_reportUI("dwl_int_report",
-                         btnlabel = "Download the full report"
+                         btnlabel = "Download Interviewer Report"
             )
           ),
           ############################ MAP #################################
@@ -275,7 +275,6 @@ main_ui <- function(request) {
                 material_card(
                   title = "",
                   depth = 4,
-                  # leafletOutput("admMap", height = "650")
                   shiny::uiOutput("MAP_UI")
                 )
               )
@@ -289,7 +288,7 @@ main_ui <- function(request) {
               )
             ),
             dwl_reportUI("dwl_m_report",
-                         btnlabel = "Download the full report"
+                         btnlabel = "Download Map Report"
             )
           )
         )

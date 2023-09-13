@@ -8,8 +8,10 @@ startupModalUI <- function(id) {
 startupModalSRV <- function(id,
                             useronly = FALSE,
                             welcometitle = "Welcome to the Survey Solutions Paradata Viewer Application!",
-                            welcomemessage = shiny::h4("Please make sure you have read the relevant documentation,
-                          available under: TBA. To continue please provide your Mapbox API key and your username."),
+                            welcomemessage = HTML("Please make sure you have read the relevant
+                                              <a href='https://michael-cw.github.io/susoparaviewer/index.html' target='_blank'>documentation</a>.
+                                              To continue please provide your username, and if you you use the mapdeck package,
+                                              your mapbox API key."),
                             apikeyhead = "Mapbox API key missing!",
                             apikeymessage = "You have not provided a valid key.
                          Without a Mapbox API key, it won't be possible use mapdeck.
