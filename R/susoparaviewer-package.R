@@ -74,7 +74,8 @@ if(getRversion() >= "3.3.0")  {
     "m_diff_dev",
     "Mean_Deviation", "Invalids", "key2", "surveyDay", "duration", "startHour", "mean_duration", "mean_durationNOBREAK",
     "mean_RespTime", "tot", "durationNOBREAK_sec", "response", "response1", "response2", "count", "counter",
-    "m_resp_time_var", "duration_sec", ".data", "AverageTimePerInterview", "NumberOfInterviews"
+    "m_resp_time_var", "duration_sec", ".data", "AverageTimePerInterview", "NumberOfInterviews",
+    "VariableName", "type"
   ))
 
 

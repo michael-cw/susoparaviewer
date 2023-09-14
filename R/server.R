@@ -564,28 +564,29 @@ main_server <- function(input, output, session) {
       )
       ## show variable selection for gps
       varnames<-c("NONE", unique(dataFile[action=="AnswerSet", "var"]))
-      shinyalert::shinyalert(
-        inputId = "gpsvarmodal",
-        title = "Select GPS variable for mapping.",
-        text = tagList(
-          shiny::selectInput(
-            inputId = "gpsvar",
-            label = "",
-            choices = varnames
-          )
-        ),
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "warning",
-        showConfirmButton = TRUE,
-        showCancelButton = FALSE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#0d47a1",
-        timer = 0,
-        imageUrl = "",
-        animation = TRUE
-      )
+      # shinyalert::shinyalert(
+      #   inputId = "gpsvarmodal",
+      #   title = "Select GPS variable for mapping.",
+      #   text = tagList(
+      #     shiny::selectInput(
+      #       inputId = "gpsvar",
+      #       label = "",
+      #       choices = varnames
+      #     )
+      #   ),
+      #   closeOnEsc = TRUE,
+      #   closeOnClickOutside = FALSE,
+      #   html = TRUE,
+      #   type = "warning",
+      #   showConfirmButton = TRUE,
+      #   showCancelButton = FALSE,
+      #   confirmButtonText = "OK",
+      #   confirmButtonCol = "#0d47a1",
+      #   timer = 0,
+      #   imageUrl = "",
+      #   animation = TRUE
+      # )
+      .shinyalertVarSelection(varnames, "gpsvar")
 
       return(dataFile)
     } else if (input$dataLoad == "Server") {
@@ -621,21 +622,61 @@ main_server <- function(input, output, session) {
           )
 
           incProgress(amount = 0.25, message = "Connection Established")
-          dataFile<-SurveySolutionsAPI::suso_export_paradata(
+          # load the questionnaire
+          questFile<-SurveySolutionsAPI::suso_getQuestDetails(
             workspace = settings[["suso.workspace"]],
-            questID = qid,
+            quid = qid,
             version = v,
-            workStatus = "Completed",
-            reloadTimeDiff = 1,
-            inShinyApp = T,
-            multiCore = NULL,
-            onlyActiveEvents = FALSE,
-            allResponses = T,
-            gpsVarName = NA,
-            verbose = T,
-            showProgress = F
+            operation.type = "structure"
           )
+          # get the GPS variable name-->take first available GpsCoordinateQuestion
+          gpsvarname<-questFile$q[type=="GpsCoordinateQuestion", VariableName]
+          # For now take only first one, maybe later with user selection--set NA if not present
+          # gpsvarname<-NULL
+          # if(length(gpsvarname_dwl)>1) {
+          #   # show modal for selection if more than one
+          #   .shinyalertVarSelection(gpsvarname_dwl, "gpsvarselserver")
+          #   req(input$gpsvarmodal)
+          #   gpsvarname<-input$gpsvarselserver
+          # } else if (length(gpsvarname_dwl)==1) {
+          #   gpsvarname<-gpsvarname_dwl
+          #
+          # } else {
+          #   gpsvarname<-NA
+          # }
+          # req(gpsvarname)
+
+          if(length(gpsvarname)>1) {
+            shiny::showNotification(
+              HTML(paste("More than one variable have been found containing GPS coordinates, only the first one will
+                    be selected, which is:<b>", gpsvarname[1], "</b>")),
+              type = "warning"
+            )
+          }
+
+          gpsvarname<-ifelse(length(gpsvarname)==0, NA, gpsvarname[1])
+
+          # load the data
+          dataFile<-.runWithModalOnError(
+            SurveySolutionsAPI::suso_export_paradata(
+              workspace = settings[["suso.workspace"]],
+              questID = qid,
+              version = v,
+              workStatus = "Completed",
+              reloadTimeDiff = 1,
+              inShinyApp = T,
+              multiCore = NULL,
+              onlyActiveEvents = FALSE,
+              allResponses = T,
+              gpsVarName = gpsvarname,
+              verbose = T,
+              showProgress = F
+            )
+          )
+          # stop on error
+          if(is.null(dataFile)) req(FALSE)
           incProgress(amount = 0.25)
+
         }
       )
       return(dataFile)
@@ -1408,17 +1449,8 @@ main_server <- function(input, output, session) {
   msumary <- reactive({
     gps_file<-req(para_data_coll$para_data$AnswerSet)
     req(fpGADM())
-    waiter::waiter_show(
-      color = "rgba(13, 71, 161, 0.7)",
-      html = tagList(
-        waiter::spin_fading_circles(),
-        "Preparing Report Content ..."
-      )
-    )
-    gps_file <- gps_file[breaks == 0]
-    gps_file <- gps_file[!is.na(resp_time)]
-    gps_file <- gps_file[resp_time <= 120]
 
+    # stop if no gps
     if(!("lat" %in% names(gps_file))) {
       shinyalert::shinyalert(paste("No GPS data available!"),
                              "You have either selected the wrong variable, or your data does not contain any geographic coordinates.",
@@ -1436,6 +1468,20 @@ main_server <- function(input, output, session) {
       )
       req(FALSE)
     }
+
+    # start process
+    waiter::waiter_show(
+      color = "rgba(13, 71, 161, 0.7)",
+      html = tagList(
+        waiter::spin_fading_circles(),
+        "Preparing Report Content ..."
+      )
+    )
+    gps_file <- gps_file[breaks == 0]
+    gps_file <- gps_file[!is.na(resp_time)]
+    gps_file <- gps_file[resp_time <= 120]
+
+
 
     # Process Completion Time
     gps_file<-gps_file[, .(durationNOBREAK=mean(durationNOBREAK, na.rm=T),

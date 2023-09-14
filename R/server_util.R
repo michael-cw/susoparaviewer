@@ -84,3 +84,59 @@ shpMapOSM_cont<-function(shp = NULL, z_var = NULL) {
     return(shapePlot_baseMap)
   }
 }
+
+#' Modal with error
+#'
+#' @noRd
+#' @keywords internal
+#'
+
+.runWithModalOnError <- function(func) {
+  result <- tryCatch(
+    {
+      func
+    },
+    error = function(err) {
+      # Display the error message in a Shiny modal
+      shinyalert::shinyalert(
+        inputId = "errormodal",
+        title = HTML("<div align='center'>ERROR</div>"),
+        text = HTML(paste("<div align='center'>An error occurred:<font color='red'>",
+                          err$message,
+                          "</font></div>")),
+        type = "error",
+        html = TRUE
+      )
+
+      return(NULL)
+    }
+  )
+
+  return(result)
+}
+
+.shinyalertVarSelection<-function(varnames, inputId) {
+  shinyalert::shinyalert(
+    inputId = "gpsvarmodal",
+    title = "Select GPS variable for mapping.",
+    text = tagList(
+      shiny::selectInput(
+        inputId = inputId,
+        label = "",
+        choices = varnames
+      )
+    ),
+    closeOnEsc = TRUE,
+    closeOnClickOutside = FALSE,
+    html = TRUE,
+    type = "warning",
+    showConfirmButton = TRUE,
+    showCancelButton = FALSE,
+    confirmButtonText = "OK",
+    confirmButtonCol = "#0d47a1",
+    timer = 0,
+    imageUrl = "",
+    animation = TRUE
+  )
+
+}

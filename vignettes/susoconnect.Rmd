@@ -1,0 +1,25 @@
+---
+title: "Connecting to your Survey Solutions Server"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Connecting to your Survey Solutions Server}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Background
+
+Working directly from your Survey Solutions server has several advanteges. First you will always get the latest data, and the data will be in the required structure. Second the identification of the GPS variable happens automatically by also importing the questionnaire. And third you will be able to opens suspicious interviews directly on your survey solutions server, given you have the required credentials.
+
+## Connection to the server
+
+First make sure, that you have set up your API user and that you have access to the desired work space. The credentials can be provided with the following user interface:
+
+
