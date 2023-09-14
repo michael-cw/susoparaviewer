@@ -1477,6 +1477,7 @@ main_server <- function(input, output, session) {
         "Preparing Report Content ..."
       )
     )
+
     gps_file <- gps_file[breaks == 0]
     gps_file <- gps_file[!is.na(resp_time)]
     gps_file <- gps_file[resp_time <= 120]
@@ -1488,9 +1489,15 @@ main_server <- function(input, output, session) {
                            lat=mean(lat, na.rm=T),
                            long=mean(long, na.rm=T)), by=.(key)]
     admShp<-getGADMbyCoord(GpsData = gps_file,ss=20, sp.Library = "sf", aggregation.var = "durationNOBREAK", path = fpGADM())
+
+    # change names and subset to report relevant information
+    data.table::setnames(admShp, "Aggregate", "AverageTimePerInterview")
+    data.table::setnames(admShp, "Count", "NumberOfInterviews")
+    admShp<-admShp %>% dplyr::select(NAME_2, AverageTimePerInterview, NumberOfInterviews)
+
     # Process Removals
     gps_file_rem<-para_data_coll$para_data$AnswerRemoved
-    if(!is.null(gps_file_rem)) {
+    if(nrow(gps_file_rem)>0) {
       gps_file_rem<-gps_file_rem[, .(Removals=.N,
                                      lat=mean(lat, na.rm=T),
                                      long=mean(long, na.rm=T)), by=.(key)]
@@ -1510,9 +1517,28 @@ main_server <- function(input, output, session) {
 
     }
 
+    # Process Invalids
+    gps_file_rem<-para_data_coll$para_data$QuestionDeclaredInvalid
+    if(nrow(gps_file_rem)>0) {
+      gps_file_rem<-gps_file_rem[, .(Invalids=.N,
+                                     lat=mean(lat, na.rm=T),
+                                     long=mean(long, na.rm=T)), by=.(key)]
+      dt<-copy(gps_file_rem)
+      dt<-dt[!is.na(long)&!is.na(lat)]
+      dt<-dt[!is.nan(long)&!is.nan(lat)]
+      #sp::coordinates(dt)<-~long+lat
+      dt<-sf::st_as_sf(dt, coords = c("long", "lat"), crs = 4326)
+      admShp<-st_transform(admShp, 3857)
+      dt<-sf::st_transform(dt, 3857)
+      dt<-dt[,"Invalids"]
+      dt<-st_join(dt, admShp, join=st_within)
+      dt<-as.data.frame(dt[,c("NAME_2", "Invalids")])
+      dt<-data.table(dt)
+      dt<-dt[,.(Invalids=round(mean((Invalids), na.rm=T), 2)), by=.(NAME_2)]
+      admShp<-merge(admShp, dt, by=c("NAME_2"))
+    }
+
     admShp<-st_transform(admShp, 4326)
-    data.table::setnames(admShp, "Aggregate", "AverageTimePerInterview")
-    data.table::setnames(admShp, "Count", "NumberOfInterviews")
 
     return((admShp))
   })
@@ -1868,6 +1894,25 @@ main_server <- function(input, output, session) {
       ## b) Answer Removed
     } else if (input$mapData == "Removals") {
       gps_file<-para_data_coll$para_data$AnswerRemoved
+      # modal if no data
+      if(nrow(gps_file)==0) {
+        shinyalert::shinyalert(paste("No data available!"),
+                               "There are no response REMOVALS in your data!",
+                               closeOnEsc = TRUE,
+                               closeOnClickOutside = TRUE,
+                               html = FALSE,
+                               type = "error",
+                               showConfirmButton = TRUE,
+                               showCancelButton = FALSE,
+                               confirmButtonText = "OK",
+                               confirmButtonCol = "#0d47a1",
+                               timer = 0,
+                               imageUrl = "",
+                               animation = TRUE
+        )
+        waiter::waiter_hide()
+        req(FALSE)
+      }
       #modal if no gps
       if(!("lat" %in% names(gps_file))) {
         shinyalert::shinyalert(paste("No GPS data available!"),
@@ -1895,6 +1940,25 @@ main_server <- function(input, output, session) {
       ## c) Question Invalid
     } else if (input$mapData == "Invalids") {
       gps_file<-para_data_coll$para_data$QuestionDeclaredInvalid
+      # modal if no data
+      if(nrow(gps_file)==0) {
+        shinyalert::shinyalert(paste("No data available!"),
+                               "There are no INVALID interviews in your data!",
+                               closeOnEsc = TRUE,
+                               closeOnClickOutside = TRUE,
+                               html = FALSE,
+                               type = "error",
+                               showConfirmButton = TRUE,
+                               showCancelButton = FALSE,
+                               confirmButtonText = "OK",
+                               confirmButtonCol = "#0d47a1",
+                               timer = 0,
+                               imageUrl = "",
+                               animation = TRUE
+        )
+        waiter::waiter_hide()
+        req(FALSE)
+      }
       #modal if no gps
       if(!("lat" %in% names(gps_file))) {
         shinyalert::shinyalert(paste("No GPS data available!"),
@@ -2015,7 +2079,6 @@ main_server <- function(input, output, session) {
     ## main list
     pop_segment <- list()
 
-
     #################################################
     ## TITLE
     qTitle <- paste("Survey Solutions Paradata Report Map")
@@ -2066,13 +2129,14 @@ main_server <- function(input, output, session) {
       sec3 = list(
         para1 = freestyler(""),
         para2 = freestyler(""),
-        para3 = freestyler("")
+        para3 = freestyler(""),
+        para4 = freestyler("")
         )
     )
     #################################################
     ## TABLE
     msumaryDT<-data.table::as.data.table(msumary() %>% sf::st_set_geometry(NULL))
-    msumaryDT<-msumaryDT[,.(NAME_2, AverageTimePerInterview, NumberOfInterviews, Removals)]
+
     qsumaryall <- msumaryDT[, tot := "Overall"][, .(
       Av_CompletionTime = mean(AverageTimePerInterview),
       N_interview = sum(NumberOfInterviews)
@@ -2084,16 +2148,32 @@ main_server <- function(input, output, session) {
       sec3 = list(para1 = NULL, para2 = NULL)
     )
     ## map
+    ## time and count always present
     gr_para1_1 <- shpMapOSM_cont(msumary(), "AverageTimePerInterview")
     gr_para1_2 <- shpMapOSM_cont(msumary(), "NumberOfInterviews")
-    gr_para1_3 <- shpMapOSM_cont(msumary(), "Removals")
+
+    ## check for removals
+    if("Removals" %in% names(msumary())) {
+      gr_para1_3 <- shpMapOSM_cont(msumary(), "Removals")
+    } else {
+      gr_para1_3<-NULL
+    }
+
+    ## check for invalids
+    if("Invalids" %in% names(msumary())) {
+      gr_para1_4 <- shpMapOSM_cont(msumary(), "Invalids")
+    } else {
+      gr_para1_4<-NULL
+    }
+    # build plot section
     pop_segment$sec_graph <- list(
       sec1 = NULL,
       sec2 = NULL,
       sec3 = list(
         para1 = gr_para1_1,
         para2 = gr_para1_2,
-        para3 = gr_para1_3
+        para3 = gr_para1_3,
+        para4 = gr_para1_4
       )
     )
 
