@@ -3,7 +3,8 @@ pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
   appuse: appuse.html
-last_built: 2023-09-13T17:48Z
+  susoconnect: susoconnect.html
+last_built: 2023-09-14T00:45Z
 urls:
   reference: https://michael-cw.github.io/susoparaviewer/reference
   article: https://michael-cw.github.io/susoparaviewer/articles
