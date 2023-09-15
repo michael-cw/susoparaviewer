@@ -1,6 +1,8 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+<a href='https://docs.mysurvey.solutions/'><img src="man/figures/susotools.png" style="float:right; height:139px;"/></a>
+
 # Survey Solutions Paradata Viewer Application
 
 <!-- badges: start -->
