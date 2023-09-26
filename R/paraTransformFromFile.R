@@ -252,93 +252,91 @@ paraTransformation<-function(paradata_files = NULL, timeDiffMax = 120,
     pack_dp_sp<-c("data.table")
     registerDoFuture()
     plan(sequential)
-    #handlers("progress")
-    progressr::with_progress({
-      p<-progressr::progressor(along = 1:simu)
-      para_dataMC<-foreach(i=1:simu, .packages = pack_dp_sp,
-                           .combine=c,
-                           .multicombine = T,
-                           .export = c("para_data"),
-                           #.verbose = T,
-                           .errorhandling="pass") %dopar% {
 
-                             ## progress
-                             #p(sprintf("event = %g", event))
-                             event<-levels(paradata_files$action)[i]
-                             p(sprintf("i=%g", i))
-                             if (event=="AnswerSet"){
-                               AnswerSet<-para1_answer
-                               AnswerSet<-AnswerSet[!is.na(interview__id)]
-                               setkeyv(AnswerSet, "interview__id")
-                               if(exists("gps_file_merge"))  AnswerSet<-gps_file_merge[AnswerSet, on="interview__id"]
-                               AnswerSet<-KeyAssigned_merge[AnswerSet, on="interview__id"]
-                               para_data[[event]]<-AnswerSet
-                               rm(AnswerSet)
+    para_dataMC<-foreach(i=1:simu, .packages = pack_dp_sp,
+                         .combine=c,
+                         .multicombine = T,
+                         .export = c("para_data"),
+                         #.verbose = T,
+                         .errorhandling="pass") %dopar% {
 
-                             } else if (event=="AnswerRemoved"){
-                               ##  2.9. Answer Removed (COUNT the number of Removed answer by questionnaire)
-                               AnswerRemoved<-paradata_files[action=="AnswerRemoved"]
-                               AnswerRemoved<-AnswerRemoved[!is.na(interview__id)]
-                               AnswerRemoved[, count:=length(counter), by=interview__id]
-                               AnswerRemoved[,c("responsible", "role"):=NULL]
-                               AnswerRemoved<-droplevels(AnswerRemoved)
-                               AnswerRemoved<-merge(AnswerRemoved, para1_answer_merge, by="interview__id", allow.cartesian=T)
-                               setkeyv(AnswerRemoved, "interview__id")
-                               if(exists("gps_file_merge")) AnswerRemoved<-gps_file_merge[AnswerRemoved, on="interview__id"]
-                               AnswerRemoved<-KeyAssigned_merge[AnswerRemoved, on="interview__id"]
-                               para_data[[event]]<-AnswerRemoved
-                               rm(AnswerRemoved)
-                             } else if (event=="ApproveByHeadquarter") {
-                               ##  2.10. Approved
-                               ApproveByHeadquarter<-paradata_files[action=="ApproveByHeadquarter"]
-                               ApproveByHeadquarter<-droplevels(ApproveByHeadquarter)
-                               ApproveBySupervisor<-paradata_files[action=="ApproveBySupervisor"]
-                               ApproveBySupervisor<-droplevels(ApproveBySupervisor)
-                               para_data[[event]]<-ApproveBySupervisor
-                               rm(ApproveBySupervisor)
-                             } else if (event=="QuestionDeclaredInvalid" & !onlyActiveEvents) {
-                               ##  2.11. Invalid
-                               QuestionDeclaredInvalid<-paradata_files[action=="QuestionDeclaredInvalid"]
-                               QuestionDeclaredInvalid<-QuestionDeclaredInvalid[!is.na(interview__id)]
-                               QuestionDeclaredInvalid[, count:=length(counter), by=interview__id]
-                               setkeyv(QuestionDeclaredInvalid, "interview__id")
-                               if(exists("gps_file_merge")) QuestionDeclaredInvalid<-gps_file_merge[QuestionDeclaredInvalid, on="interview__id"]
-                               QuestionDeclaredInvalid<-KeyAssigned_merge[QuestionDeclaredInvalid, on="interview__id"]
-                               para_data[[event]]<-QuestionDeclaredInvalid
-                               rm(QuestionDeclaredInvalid)
-                             } else if (event=="QuestionDeclaredValid" & !onlyActiveEvents) {
-                               ##  2.12. Valid
-                               QuestionDeclaredValid<-paradata_files[action=="QuestionDeclaredValid"]
-                               QuestionDeclaredValid<-QuestionDeclaredValid[!is.na(interview__id),]
-                               QuestionDeclaredValid[, count:=length(counter), by=interview__id]
-                               para_data[[event]]<-QuestionDeclaredValid
-                               rm(QuestionDeclaredValid)
-                             } else if (event=="Restarted") {
-                               ##  2.13 Restarted
-                               Restarted<-paradata_files[action=="Restarted"]
-                               Restarted<-Restarted[!is.na(interview__id),]
-                               Restarted[, count:=length(counter), by=interview__id]
-                               setkeyv(Restarted, "interview__id")
-                               if(exists("gps_file_merge")) Restarted<-gps_file_merge[Restarted, on="interview__id"]
-                               Restarted<-KeyAssigned_merge[Restarted, on="interview__id"]
-                               para_data[[event]]<-Restarted
-                               rm(Restarted)
-                             } else if (event=="Reject") {
-                               ##  2.14. Rejected
-                               Reject<-paradata_files[action=="RejectedBySupervisor"|action=="RejectedByHeadquarter"][,c("var_resp", "rid"):=NULL]
-                               setnames(Reject, "var", "comment")
-                               Reject<-droplevels(Reject)
-                               #paradata_files<-paradata_files[action!="RejectedBySupervisor"&action!="RejectedByHeadquarter"]
-                               #paradata_files<-droplevels(paradata_files)
-                               setkeyv(Reject, "interview__id")
-                               if(exists("gps_file_merge")) Reject<-gps_file_merge[Reject, on="interview__id"]
-                               Reject<-KeyAssigned_merge[Reject, on="interview__id"]
-                               para_data[[event]]<-Reject
-                               rm(Reject)
-                             }
-                             return(para_data)
+                           ## progress
+                           #p(sprintf("event = %g", event))
+                           event<-levels(paradata_files$action)[i]
+                           p(sprintf("i=%g", i))
+                           if (event=="AnswerSet"){
+                             AnswerSet<-para1_answer
+                             AnswerSet<-AnswerSet[!is.na(interview__id)]
+                             setkeyv(AnswerSet, "interview__id")
+                             if(exists("gps_file_merge"))  AnswerSet<-gps_file_merge[AnswerSet, on="interview__id"]
+                             AnswerSet<-KeyAssigned_merge[AnswerSet, on="interview__id"]
+                             para_data[[event]]<-AnswerSet
+                             rm(AnswerSet)
+
+                           } else if (event=="AnswerRemoved"){
+                             ##  2.9. Answer Removed (COUNT the number of Removed answer by questionnaire)
+                             AnswerRemoved<-paradata_files[action=="AnswerRemoved"]
+                             AnswerRemoved<-AnswerRemoved[!is.na(interview__id)]
+                             AnswerRemoved[, count:=length(counter), by=interview__id]
+                             AnswerRemoved[,c("responsible", "role"):=NULL]
+                             AnswerRemoved<-droplevels(AnswerRemoved)
+                             AnswerRemoved<-merge(AnswerRemoved, para1_answer_merge, by="interview__id", allow.cartesian=T)
+                             setkeyv(AnswerRemoved, "interview__id")
+                             if(exists("gps_file_merge")) AnswerRemoved<-gps_file_merge[AnswerRemoved, on="interview__id"]
+                             AnswerRemoved<-KeyAssigned_merge[AnswerRemoved, on="interview__id"]
+                             para_data[[event]]<-AnswerRemoved
+                             rm(AnswerRemoved)
+                           } else if (event=="ApproveByHeadquarter") {
+                             ##  2.10. Approved
+                             ApproveByHeadquarter<-paradata_files[action=="ApproveByHeadquarter"]
+                             ApproveByHeadquarter<-droplevels(ApproveByHeadquarter)
+                             ApproveBySupervisor<-paradata_files[action=="ApproveBySupervisor"]
+                             ApproveBySupervisor<-droplevels(ApproveBySupervisor)
+                             para_data[[event]]<-ApproveBySupervisor
+                             rm(ApproveBySupervisor)
+                           } else if (event=="QuestionDeclaredInvalid" & !onlyActiveEvents) {
+                             ##  2.11. Invalid
+                             QuestionDeclaredInvalid<-paradata_files[action=="QuestionDeclaredInvalid"]
+                             QuestionDeclaredInvalid<-QuestionDeclaredInvalid[!is.na(interview__id)]
+                             QuestionDeclaredInvalid[, count:=length(counter), by=interview__id]
+                             setkeyv(QuestionDeclaredInvalid, "interview__id")
+                             if(exists("gps_file_merge")) QuestionDeclaredInvalid<-gps_file_merge[QuestionDeclaredInvalid, on="interview__id"]
+                             QuestionDeclaredInvalid<-KeyAssigned_merge[QuestionDeclaredInvalid, on="interview__id"]
+                             para_data[[event]]<-QuestionDeclaredInvalid
+                             rm(QuestionDeclaredInvalid)
+                           } else if (event=="QuestionDeclaredValid" & !onlyActiveEvents) {
+                             ##  2.12. Valid
+                             QuestionDeclaredValid<-paradata_files[action=="QuestionDeclaredValid"]
+                             QuestionDeclaredValid<-QuestionDeclaredValid[!is.na(interview__id),]
+                             QuestionDeclaredValid[, count:=length(counter), by=interview__id]
+                             para_data[[event]]<-QuestionDeclaredValid
+                             rm(QuestionDeclaredValid)
+                           } else if (event=="Restarted") {
+                             ##  2.13 Restarted
+                             Restarted<-paradata_files[action=="Restarted"]
+                             Restarted<-Restarted[!is.na(interview__id),]
+                             Restarted[, count:=length(counter), by=interview__id]
+                             setkeyv(Restarted, "interview__id")
+                             if(exists("gps_file_merge")) Restarted<-gps_file_merge[Restarted, on="interview__id"]
+                             Restarted<-KeyAssigned_merge[Restarted, on="interview__id"]
+                             para_data[[event]]<-Restarted
+                             rm(Restarted)
+                           } else if (event=="Reject") {
+                             ##  2.14. Rejected
+                             Reject<-paradata_files[action=="RejectedBySupervisor"|action=="RejectedByHeadquarter"][,c("var_resp", "rid"):=NULL]
+                             setnames(Reject, "var", "comment")
+                             Reject<-droplevels(Reject)
+                             #paradata_files<-paradata_files[action!="RejectedBySupervisor"&action!="RejectedByHeadquarter"]
+                             #paradata_files<-droplevels(paradata_files)
+                             setkeyv(Reject, "interview__id")
+                             if(exists("gps_file_merge")) Reject<-gps_file_merge[Reject, on="interview__id"]
+                             Reject<-KeyAssigned_merge[Reject, on="interview__id"]
+                             para_data[[event]]<-Reject
+                             rm(Reject)
                            }
-    })
+                           return(para_data)
+                         }
+
     para_dataMC[["actionDistr"]]<-actionDistr
     para_dataMC[["userDistr"]]<-userDistr
     para_dataMC[["roleDistr"]]<-roleDistr

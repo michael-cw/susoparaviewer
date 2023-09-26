@@ -46,7 +46,7 @@ main_server <- function(input, output, session) {
   ## get file path and key
   # file path
   fp<-reactiveVal(NULL)
-  fpGADM<-reactiveVal(NULL); fpPARA<-reactiveVal(NULL)
+  fpGADM<-reactiveVal(NULL); fpPARA<-reactiveVal(NULL); fpConfig<-reactiveVal(NULL)
   observeEvent(startupkeyusr$user(), {
     usr <- req(startupkeyusr$user())
     # user appdir
@@ -71,6 +71,13 @@ main_server <- function(input, output, session) {
       dir.create(appdir_sub, recursive = TRUE, showWarnings = FALSE)
     }
     fpPARA(appdir_sub)
+
+    # Config file dir
+    appdir_sub <- file.path(appdir, "gplogconfig")
+    if (!dir.exists(appdir_sub)) {
+      dir.create(appdir_sub, recursive = TRUE, showWarnings = FALSE)
+    }
+    fpConfig(appdir_sub)
 
     notmessage <- HTML(
       sprintf(
@@ -2131,7 +2138,7 @@ main_server <- function(input, output, session) {
         para2 = freestyler(""),
         para3 = freestyler(""),
         para4 = freestyler("")
-        )
+      )
     )
     #################################################
     ## TABLE
@@ -2253,30 +2260,75 @@ main_server <- function(input, output, session) {
   )
 
 
+
   #####################################################################
-  #####################################################################
-  ##    ADD OWNTRACKS
-  #####################################################################
+  ##    ADD Tracking
   #####################################################################
   counter <- reactiveValues()
+  trPass<-reactiveVal(getOption("useTrackingPass")); trDBServ<-reactiveVal(getOption("trackServer"))
+  trDBPort<-reactiveVal(getOption("trackServerPort")); trDB<-reactiveVal(getOption("trackServerDB"))
+  trDBuser<-reactiveVal(getOption("trackServerUser")); trDBpass<-reactiveVal(getOption("trackServerPass"))
+  trDBtable<-reactiveVal(getOption("trackServerTable"))
 
-  ######################################################
-  ##  1. Update Server in admin settings
-  observeEvent(input$trackMode, {
-    if (input$trackMode) {
-      updateTextInput(session,
-                      "trackingIP",
-                      "Please provide server address and port (i.e. IP:PORT)",
-                      value = "34.224.75.201:1883"
-      )
-    } else {
-      updateTextInput(session,
-                      "trackingIP",
-                      "Please provide server address and port (i.e. IP:PORT)",
-                      value = "34.224.75.201:80"
-      )
+  # enable track section
+  # load SV
+  svSuSo<-reactive({
+    settings <- req(ADMIN$settings)
+
+    SurveySolutionsAPI::suso_getSV(workspace = settings[["suso.workspace"]])
+  })
+  observeEvent(input$pass, {
+    req(trPass(), trDBServ(), trDBPort(), trDB(), trDBtable(), trDBpass(), trDBuser())
+    if(input$pass == trPass()) {
+      shinyjs::showElement(id = "trackingdiv", anim = T)
+
+      ## get sv
+      sv<-svSuSo()
+      sv<-setNames(object = c("00-00-00",sv$UserId), c("Select team",sv$UserName))
+      ## wait for team data to load
+
+      update_material_dropdown(session,
+                               input_id = "team",
+                               choices = sv,
+                               value = sv[1])
+
+      update_material_dropdown(session,
+                        input_id = "teamConfig",
+                        choices = sv,
+                        value = sv[1])
+    }
+  }, ignoreInit = F)
+
+  # load tracking data
+  trDBload<-reactive({
+    req(trPass(), trDBServ(), trDBPort(), trDB(), trDBtable(), trDBpass(), trDBuser())
+    trtab<-retrieve_postgres_table(
+      trDBServ(),
+      trDBPort(),
+      trDBuser(),
+      trDBpass(),
+      trDB(),
+      trDBtable()
+    )
+    return(trtab)
+  })
+
+  trDBteam<-eventReactive(input$team, {
+    req(input$team, input$team!= "No Data Loaded!")
+    settings <- req(ADMIN$settings)
+    if(input$team!="00-00-00"){
+      intTeam<-SurveySolutionsAPI::suso_getINT(sv_id = input$team, workspace = settings[["suso.workspace"]])
+      trtab<-req(trDBload())
+      sv<-req(svSuSo())
+      sv<-sv[UserId==input$team, UserName]
+      # subset by user/team
+      idint<-paste(sv, unique(intTeam$UserName), sep = "_")
+      trtab<-trtab[id %in% idint]
+      return(trtab)
     }
   })
+
+
   # ######################################################
   # ##  2. LOAD tracks
   # observeEvent(input$loadtrack, {
@@ -2296,65 +2348,74 @@ main_server <- function(input, output, session) {
   ######################################################
   ##  3. RELOAD tracks
   trackSF <- reactive({
-    trackRefresh <- isolate(input$trackRefresh * 1000)
-    invalidateLater(trackRefresh, session = NULL)
-
-    if (input$loadtrack == T) {
-      shiny::validate(
-        need(input$acc, message = F),
-        need(input$team != "No Data Loaded!", message = F)
-      )
-      #a <- readOwntracksDB(num5 = input$acc, usersOnly = F, USER = input$team)
-      return(a)
-      Sys.sleep(0.1)
+    trData<-req(trDBteam())
+    # if no data show warning and stop
+    if(nrow(trData)==0) {
+      showNotification("No tracking data for the selected team. Please select a different team!", type = "error")
+      req(FALSE)
     }
+    trDataSF<-pointsToTrackSF(trData)
+    # trackRefresh <- isolate(input$trackRefresh * 1000)
+    # invalidateLater(trackRefresh, session = NULL)
+    #
+    # if (input$loadtrack == T) {
+    #   shiny::validate(
+    #     need(input$acc, message = F),
+    #     need(input$team != "No Data Loaded!", message = F)
+    #   )
+    #   #a <- readOwntracksDB(num5 = input$acc, usersOnly = F, USER = input$team)
+    #   return(a)
+    #   Sys.sleep(0.1)
+    # }
+    trDataSF<-calculate_length_km(trDataSF)
+    return(trDataSF)
   })
+
+
 
   ######################################################
   ##  4. SHAPE file for tracking
   tracksShape <- reactive({
-    counter <- counter$counter
-    counter <- ifelse(!is.null(counter), counter, 0)
-    shiny::validate(need(input$acc >= 5, message = F))
-    a <- trackSF()
+    req(fpGADM())
+    # counter <- counter$counter
+    # counter <- ifelse(!is.null(counter), counter, 0)
+    #shiny::validate(need(input$acc >= 5, message = F))
+    a <- req(trackSF())
     shiny::validate(
       need(a, message = F),
       need(input$team != "No Data Loaded!", message = F)
     )
-    c_1 <- sum(a$n)
-    if (input$pass == "RomaniaLFS2018") a <- a[a$user != "tester" | a$user != "tester1", ]
-    a <- a[a$user == input$team, ]
-    if (counter != c_1) {
-      # print(a)
-      a <- a[!st_is_empty(a), ]
-      # print(a)
-      a <- as(a, "Spatial")
-      a$distKM <- SpatialLinesLengths(a, longlat = T)
-      a$id <- rownames(a@data)
-      adt <- data.table(tidy(a))
-      a <- merge(adt, a@data, by = "id")
-      trackShapeArea <- getGADMbyCoord(a, aggregation.var = "timeDiff")
+    # c_1 <- sum(a$n)
+    # counter != c_1
+
+    if (TRUE) {
+      # get center coordinates
+      a<-calculate_center_point(a)
+      # get the polygon
+      trackShapeArea <- getGADMbyCoord(a, aggregation.var = "timeDiff", path = fpGADM())
       return(trackShapeArea)
     }
   })
+
+  observe({
+    tr<-req(tracksShape())
+    print(tr)
+  })
+
 
 
   #############################################
   ##  5. OWNTRACKS LEAFLET MAP
   output$trackMap <- renderLeaflet({
-    if (input$loadtrack == T) {
-      admShp <- tracksShape()
-      gps_file <- trackSF()
-      shiny::validate(need(admShp, message = "No Data Loaded!"))
+      admShp <-req(tracksShape())
+      gps_file <- req(trackSF())
+
       admShp <- st_transform(admShp, 4326)
-      ##  ABSURD muss mit sf gehen
-      gps_file <- as(gps_file, "Spatial")
-      gps_file$distKM <- round(SpatialLinesLengths(gps_file, longlat = T), 3)
-      gps_file <- gps_file[gps_file$user == input$team, ]
+
       ##  1. Preparation
       ##  1.1 color palette
       pal <- colorNumeric(palette = "magma", domain = admShp$Aggregate)
-      pal1 <- colorFactor(palette = "viridis", domain = gps_file$tid)
+      pal1 <- colorFactor(palette = "viridis", domain = gps_file$id)
       ##  1.2. Popup
       ##  a) shape
       popup <- paste(
@@ -2372,19 +2433,29 @@ main_server <- function(input, output, session) {
       popup1 <- paste(
         sep = "<br/>",
         "<b>ID:</b>",
-        gps_file$tid,
+        gps_file$id,
         "<b>Completed Distance (KM):</b>",
         gps_file$distKM,
         "<b>Date:</b>",
         gps_file$DATE1
       )
+      ## c) view
+      gps_file_cen<-gps_file %>%
+        sf::st_centroid() %>%
+        sf::st_coordinates() %>%
+        as.data.frame()
+      print(gps_file_cen)
+
       baseMap <- leaflet() %>%
-        addProviderTiles("Esri.WorldImagery",
+        addProviderTiles("Esri.WorldImagery", group = "ESRI WorldImagery (default)",
                          layerId = 1,
                          options = providerTileOptions(noWrap = TRUE)
         ) %>%
+        leaflet::addTiles(group = "OSM") %>%
+        leaflet::setView(lng = gps_file_cen[1,1], lat = gps_file_cen[1,2], zoom = 14) %>%
         addPolygons(
           data = admShp,
+          group = "Area Boundaries",
           weight = 1,
           color = ~ pal(Aggregate),
           fillOpacity = 0.5,
@@ -2394,19 +2465,112 @@ main_server <- function(input, output, session) {
           popupOptions = popupOptions(closeOnClick = T)
         ) %>%
         addPolylines(
-          data = gps_file, color = ~ pal1(tid),
+          data = gps_file, color = ~ pal1(id), weight = 3,
+          group = "Tracks",
+          opacity = 1,
           popup = ~ (popup1)
         ) %>%
         addLegend(
-          data = gps_file, "bottomright", pal = pal1, values = ~tid,
+          data = gps_file, "bottomright", pal = pal1, values = ~id,
           title = "Interviewer",
           # labFormat = labelFormat(suffix = " Min"),
           opacity = 1
+        ) %>%
+        leaflet::addLayersControl(
+          baseGroups = c("ESRI WorldImagery (default)", "OSM"),
+          overlayGroups = c("Area Boundaries", "Tracks"),
+          options = leaflet:::layersControlOptions(collapsed = FALSE)
         )
       return(baseMap)
-    }
   })
 
+  ## 6. Generate Config files
+  observeEvent(input$downloadGPSLoggerConfig, {
+    # Check inputs
+    req(
+      input$acc,
+      input$trackRefresh,
+      input$trackDistance,
+      input$trackingIP,
+      input$trackingPort,
+      input$trackUser,
+      input$trackPass
+    )
+
+    if(input$trackAll) {
+      # Single Team
+      req(!(input$teamConfig %in% c("No Data Loaded!", "00-00-00")))
+      settings <- req(ADMIN$settings)
+      intTeam<-SurveySolutionsAPI::suso_getINT(sv_id = input$teamConfig, workspace = settings[["suso.workspace"]])
+      sv<-req(svSuSo())
+      sv<-sv[UserId==input$teamConfig, UserName]
+      # subset by user/team
+      for(usr in intTeam$UserName){
+
+      write_config(
+        gpsloggerserver = input$trackingIP,
+        gpsloggerserverport = input$trackingPort,
+        supervisor = sv,
+        interviewer = usr,
+        gpsloggerserver_username = input$trackUser,
+        gpsloggerserver_pass = input$trackPass,
+        loggingdistance = input$trackDistance,
+        logginginterval = input$trackRefresh,
+        gpsprecision = input$acc,
+        fp = fpConfig(),
+        fptemplate = file.path(system.file("rmdfiles", package = "susoparaviewer"), "gpslogger_template.properties")
+      )
+
+      }
+    } else if(!input$trackAll) {
+
+      sv<-req(svSuSo())
+      settings <- req(ADMIN$settings)
+      for(svid in sv$UserId){
+        intTeam<-SurveySolutionsAPI::suso_getINT(sv_id = svid, workspace = settings[["suso.workspace"]])
+
+        svnam<-sv[UserId==svid, UserName]
+        # subset by user/team
+        for(usr in intTeam$UserName){
+          # All teams
+          write_config(
+            gpsloggerserver = input$trackingIP,
+            gpsloggerserverport = input$trackingPort,
+            supervisor = svnam,
+            interviewer = usr,
+            gpsloggerserver_username = input$trackUser,
+            gpsloggerserver_pass = input$trackPass,
+            loggingdistance = input$trackDistance,
+            logginginterval = input$trackRefresh,
+            gpsprecision = input$acc,
+            fp = fpConfig(),
+            fptemplate = file.path(system.file("rmdfiles", package = "susoparaviewer"), "gpslogger_template.properties")
+          )
+
+        }
+      }
+    }
+
+    fn<-list.files(fpConfig(), full.names = T, pattern = ".properties$")
+    fnzip<-file.path(fpConfig(), paste0("GPSLoggerConfigurationFiles", ".zip"))
+    zip::zip(zipfile=fnzip, files=fn, mode = "cherry-pick")
+
+    ## 2.5. Click DWL button
+    shinyjs::click("downloadGPSLoggerConfigDwl")
+  })
+
+  output$downloadGPSLoggerConfigDwl <- downloadHandler(
+    filename = function() {
+      paste0("GPSLoggerConfigurationFiles", ".zip")
+    },
+    content = function(file) {
+      fnzip<-file.path(fpConfig(), paste0("GPSLoggerConfigurationFiles", ".zip"))
+      on.exit(
+        {if(file.exists(fnzip)) file.remove(fnzip)}
+        #{if(file.exists(fn)) file.remove(fn)}
+      )
+      file.copy(fnzip, file)
+    }, contentType = "application/zip")
 
   ######################################################################
 }

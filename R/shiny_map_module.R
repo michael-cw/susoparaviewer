@@ -122,8 +122,8 @@ mapModuleSvr <- function(id,
             ## Get Centroids
             loc<-loc_center(Boundaries)
             ## calculate zoom
-            bb<-st_bbox(Boundaries)
-            zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
+            # bb<-st_bbox(Boundaries)
+            # zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
             ############################################
             mapdeck_update(map_id = session$ns("baseMap1")) %>%
               clear_polygon(layer_id = "pols") %>%
@@ -159,8 +159,8 @@ mapModuleSvr <- function(id,
             ## Get Centroids
             loc<-loc_center(Boundaries)
             ## calculate zoom
-            bb<-st_bbox(Boundaries)
-            zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
+            # bb<-st_bbox(Boundaries)
+            # zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
             ############################################
             mapdeck_update(map_id = session$ns("baseMap1")) %>%
               clear_polygon(layer_id = "pols") %>%
@@ -240,8 +240,8 @@ mapModuleSvr <- function(id,
         ## Get Centroids
         loc<-loc_center(Boundaries)
         ## calculate zoom
-        bb<-st_bbox(Boundaries)
-        zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
+        # bb<-st_bbox(Boundaries)
+        # zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
         ############################################
         mapdeck_update(map_id = session$ns("baseMap1")) %>%
           mapdeck_view(pitch = 60, zoom = zoom.transition, location = loc,
@@ -261,8 +261,8 @@ mapModuleSvr <- function(id,
         ## Get Centroids
         loc<-loc_center(pts)
         ## calculate zoom
-        bb<-st_bbox(pts)
-        zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
+        # bb<-st_bbox(pts)
+        # zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
         ############################################
         mapdeck_update(map_id = session$ns("baseMap1")) %>%
           add_scatterplot(pts,
@@ -316,8 +316,8 @@ mapModuleSvr <- function(id,
         ## Get Centroids
         loc<-loc_center(pts)
         ## calculate zoom
-        bb<-st_bbox(pts)
-        zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
+        # bb<-st_bbox(pts)
+        # zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
         ############################################
         mapdeck_update(map_id = session$ns("baseMap1")) %>%
           #update_style (style = mapdeck_style("dark")) %>%
@@ -353,8 +353,8 @@ mapModuleSvr <- function(id,
         ## Get Centroids
         loc<-loc_center(pts)
         ## calculate zoom
-        bb<-st_bbox(pts)
-        zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
+        # bb<-st_bbox(pts)
+        # zoom<-RgoogleMaps::MaxZoom(bb[c(2,4)], bb[c(1,3)])
         ############################################
         mapdeck_update(map_id = session$ns("baseMap1")) %>%
           #update_style (style = mapdeck_style("dark")) %>%

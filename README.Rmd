@@ -108,6 +108,59 @@ devtools::install_github("daattali/shinyalert")
 
 ```
 
+
+#### EXPERIMENTAL OPTIONAL FEATURE: GPSLogger tracking
+
+The application also contains an optional feature, which allows you to track enumerators during fieldwork. This may be useful for example when you conduct a pre-survey listing of household units, where coverage of area sampling units is important. To use this feature two prerequisites are needed:
+
+  1. The [GPSLogger application](https://gpslogger.app/), which is an open source, lightweight GPS logger.
+  2. A PostgreSQL database with the logging data stored in the following *gpslogger* table:
+      - lat double precision Latitude
+      - long double precision Longitude
+      - id text user id included in the url
+      - aid text android id
+      - time text time
+      - acc double precision accuracy
+      - bat double precision battery percentage
+
+You can either set this up in your own way, or use the [NiFI](https://nifi.apache.org/) based solution for which you can find the template in the [NIFI-GPSLogger-with-SSL](https://github.com/michael-cw/NIFI-GPSLogger-with-SSL) repo. The latter also contains to bash scripts to set-up NIFI as well as the required PostgreSQL database on Ubuntu 22.04. Nevertheless for both cases, you should know what you do, and be in compliance with local labor and privacy regulations.
+
+However if you decide to use this feature, then you need to provide the required PostgreSQL database connection details when starting the app.
+
+You can either run the application interactively: 
+
+```{r start_gpslogger, eval=FALSE, echo=TRUE}
+library(susoparaviewer)
+susoparaviewer::runParaApp(useTrackingPass = [yourinapptrackingpass], 
+                           trackServer = "10.10.10.10", 
+                           trackServerPort = 5432, 
+                           trackServerDB = "gpsloggerdb", 
+                           trackServerUser = [yourPGuser], 
+                           trackServerPass = [yourPGpassword], 
+                           trackServerTable = "gpslogger")
+
+```
+
+With the *useTrackingPass* password you can restrict access inside the app. For the server option, the command would then look like this:
+
+```{r start_gpslogger_server, eval=FALSE, echo=TRUE}
+library(susoparaviewer)
+susoparaviewer::runParaAppServer(useTrackingPass = [yourinapptrackingpass], 
+                                 trackServer = "10.10.10.10", 
+                                 trackServerPort = 5432, 
+                                 trackServerDB = "gpsloggerdb", 
+                                 trackServerUser = [yourPGuser], 
+                                 trackServerPass = [yourPGpassword], 
+                                 trackServerTable = "gpslogger")
+
+```
+
+
+##### Automatically create configuration files for your team
+
+In addition to monitoring fieldwork activities, the app also includes the option to generate [GPSLogger configuration files](https://gpslogger.app/#loadprofilesfromafileonyourdevice) either for all enumerators on the Survey Solutions server or for selected teams. For details see the corresponding vignette.
+
+
 ## Feature requests and bug reports
 
 You can either use the standard GitHub approach by filing a bug report/feature request [here](https://github.com/michael-cw/SurveySolutionsAPI/issues) or you use the Survey Solutions user forum [here](https://forum.mysurvey.solutions/c/api/13).

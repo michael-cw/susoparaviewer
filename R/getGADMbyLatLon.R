@@ -22,7 +22,7 @@ getGADMbyCoord<-function(GpsData=NULL, ss=20, aggregation.var="durationNOBREAK",
   dt<-dt[!is.na(lat) & !is.na(long)]
   country<-MazamaSpatialUtils::getCountry(longitude = dt$long, latitude = dt$lat, allData = T)
   country<-MazamaSpatialUtils::iso2ToIso3(country$countryCode)
-  country<-raster::modal(country)
+  country<-stat_mode(country)
   ## exceptions
   if(country== "Country Not Found") stop("No Country Available!")
   if (country=="United States of America") country<-"United States"
@@ -55,3 +55,9 @@ getGADMbyCoord<-function(GpsData=NULL, ss=20, aggregation.var="durationNOBREAK",
   return(shp.out)
 }
 
+# statistical mode --> in server util
+# stat_mode<-function(x) {
+#   # mode solution from: https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode
+#   ux<-unique(x)
+#   ux[which.max(tabulate(match(x, ux)))]
+# }

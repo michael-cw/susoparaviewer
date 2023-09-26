@@ -6,7 +6,14 @@
 \usage{
 runParaAppServer(
   launch.browser = TRUE,
-  mapwidget.option = c("leaflet", "mapdeck")
+  mapwidget.option = c("leaflet", "mapdeck"),
+  useTrackingPass = NULL,
+  trackServer = NULL,
+  trackServerPort = 5432,
+  trackServerDB = NULL,
+  trackServerUser = NULL,
+  trackServerPass = NULL,
+  trackServerTable = NULL
 )
 }
 \arguments{
@@ -16,6 +23,20 @@ interactive sessions only. The value of this parameter can also be a
 function to call with the application's URL.}
 
 \item{mapwidget.option}{Selection of map at start-up, mapdeck or leaflet, defaults to leaflet if NULL}
+
+\item{useTrackingPass}{Passcode to access tracking section, if NULL, tracking is disabled}
+
+\item{trackServer}{PostgreSQL tracking DB URL}
+
+\item{trackServerPort}{PostgreSQL tracking DB port}
+
+\item{trackServerDB}{PostgreSQL tracking DB name}
+
+\item{trackServerUser}{PostgreSQL tracking DB user}
+
+\item{trackServerPass}{PostgreSQL tracking DB pasword}
+
+\item{trackServerTable}{PostgreSQL tracking DB table with tracking data}
 }
 \description{
 A wrappter function to start the application. Please make sure you have read the

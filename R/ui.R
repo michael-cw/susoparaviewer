@@ -26,6 +26,16 @@ main_ui <- function(request) {
     title = "Survey Solutions Paradata Viewer",
     tags$br(),
     # css styles
+    tags$script(HTML(
+      "
+      const dropdown = document.querySelector('.dropdown');
+      const dropdownContent = document.querySelector('.dropdown-content');
+
+      dropdown.addEventListener('click', () => {
+      dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+      });
+      "
+    )),
     tags$style("
       #slide-out.sidenav {
         width: 30vw;
@@ -33,6 +43,32 @@ main_ui <- function(request) {
       #modal-fba285d0-e69b-072b-8c6f-33f90c89a607 {
         transform: scaleX(2) scaleY(2) !important;
       }
+      .dropdown-content {
+            -webkit-text-size-adjust: 100%;
+            line-height: 1.5;
+            font-weight: normal;
+            color: rgba(0,0,0,0.87);
+            font-size: 15px;
+            box-sizing: inherit;
+            box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14),0 3px 1px -2px rgba(0,0,0,0.12),0 1px 5px 0 rgba(0,0,0,0.2);
+            background-color: #fff;
+            margin: 0;
+            min-width: 100px;
+            overflow-y: auto;
+            position: absolute;
+            z-index: 9999;
+            padding-left: 0;
+            list-style-type: none;
+            display: none;
+            max-height: 200px; /* updated max-height */
+            width: 100%;
+            left: 0;
+            top: 0;
+            transform-origin: 0 0;
+            opacity: 1;
+            transform: scaleY(1);
+        }
+
       .shiny-notification {
              width: 250px !important;
              position:fixed;
@@ -448,134 +484,122 @@ main_ui <- function(request) {
           material_card(
             title = "",
             depth = 4,
-            conditionalPanel(
-              "input.pass == 'Tracker1234'|input.pass == 'RomaniaLFS2018'",
-              material_switch("loadtrack", "Load Interviewer Tracks",
-                              off_label = "No", on_label = "Yes",
-                              initial_value = FALSE
-              ),
-              br(), br(),
-              br(),
-              material_dropdown("team", "Select Team", c("No Data Loaded!"))
-            ),
             material_password_box("pass", "Provide Password for Tracking!", color = "#0d47a1"),
-            br(), br(), br(),
-            ####################### ADMIN PANEL TRACK  ################################################
-            ## ADMIN PANEL TRACK
-            conditionalPanel(
-              "input.pass == 'Tracker1234'|input.pass == 'RomaniaLFS2018'",
-              material_modal(
-                modal_id = "adminTrack",
-                button_text = "Admin Settings",
-                button_icon = "satellite",
-                title = "Admin Settings Tracking",
-                button_color = "blue darken-4",
-                # tags$h5("Admin Panel"),
-                # br(),
-                material_row(
-                  material_column(
-                    width = 6,
-                    numericInput("acc",
-                                 "Desired Precision (m, max. 1000)?",
-                                 min = 5,
-                                 max = 1000,
-                                 step = 5,
-                                 value = 15
-                    )
-                  ),
-                  material_column(
-                    width = 6,
-                    numericInput("trackRefresh",
-                                 "Reload tracking data every (in seconds):",
-                                 value = 60,
-                                 min = 30,
-                                 max = 7200
-                    )
-                  )
-                ),
-                material_row(
-                  material_column(
-                    width = 6,
-                    material_switch("trackMode",
-                                    initial_value = TRUE,
-                                    "Which tracking Software?",
-                                    on_label = "Owntracks",
-                                    off_label = "GPSlogger"
-                    )
-                  ),
-                  material_column(
-                    width = 6,
-                    textInput("trackingIP",
-                              "Please provide server address and port
-                                                               (i.e. IP:PORT)",
-                              value = "34.224.75.201:1883"
-                    )
-                  )
-                ),
-                conditionalPanel(
-                  "input.trackMode==true",
-                  material_row(
-                    material_column(
-                      width = 3
-                    ),
-                    material_column(
-                      width = 6,
-                      material_dropdown("teamTrack", "Select Team", c("No Data Loaded!")),
-                      helpText("For tracking with OWNTRACKS each user receives a within team unique id. This needs to be
-                                                      done for all teams which should be tracked.")
-                    ),
-                    material_column(
-                      width = 3
-                    )
-                  ),
-                  material_row(
-                    material_column(
-                      width = 6,
-                      material_button(
-                        input_id = "genTeamTrack",
-                        label = "Generate Teams",
-                        color = "blue darken-4",
-                        icon = "create"
-                      )
-                    ),
-                    material_column(
-                      width = 6, br(),
-                      downloadButton("downloadOwnTrConfig",
-                                     label = "Download Owntracks\n Configuration Files",
-                                     style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
-                      )
-                    )
-                  )
-                ),
-                conditionalPanel(
-                  "input.trackMode==false",
-                  material_row(
-                    material_column(
-                      width = 3
-                    ),
-                    material_column(
-                      width = 6,
-                      material_number_box("gpsLoggUser", "How many GPSlogger configuration files are required?",
-                                          min_value = 0, max_value = 999, initial_value = 1, color = "#0d47a1"
+            shinyjs::hidden(
+              div(id = "trackingdiv",
+                  br(),
+                  material_dropdown("team", "Select Team", c("No Data Loaded!")),
+                  br(), br(), br(),
+                  ####################### ADMIN PANEL TRACK  ################################################
+                  ## ADMIN PANEL TRACK
+                  material_modal(
+                    modal_id = "adminTrack",
+                    button_text = "GPSLogger Configuration",
+                    button_icon = "satellite",
+                    title = "Generate Configuration Files",
+                    button_color = "blue darken-4",
+                    # tags$h5("Admin Panel"),
+                    # br(),
+                    material_row(
+                      material_column(
+                        width = 4,
+                        numericInput("acc",
+                                     "Desired Precision (m, max. 1000)?",
+                                     min = 5,
+                                     max = 1000,
+                                     step = 5,
+                                     value = 15
+                        )
                       ),
-                      helpText("For tracking with GPSlogger, it requires only the total number of interviewers which will be tracked, as everybody receives the
-                                                                       same configuration file. Identification is done by the device ID.")
-                    ),
-                    material_column(
-                      width = 3
-                    )
-                  ),
-                  material_row(
-                    material_column(width = 6),
-                    material_column(
-                      width = 6, br(),
-                      downloadButton("downloadGPSLoggerConfig",
-                                     label = "Download GPSlogger\n Configuration Files",
-                                     style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
+                      material_column(
+                        width = 4,
+                        numericInput("trackRefresh",
+                                     "Check location every (in seconds):",
+                                     value = 60,
+                                     min = 30,
+                                     max = 1000
+                        )
+                      ),
+
+                      material_column(
+                        width = 4,
+                        numericInput("trackDistance",
+                                     "Log location every (in meters):",
+                                     value = 2,
+                                     min = 1,
+                                     max = 100
+                        )
                       )
+                    ),
+                    material_row(
+                      material_column(
+                        width = 4,
+                        textInput("trackingIP",
+                                  "Please provide server address",
+                                  placeholder = "Required Format: https://10.10.10.10"
+                        )
+                      ),
+                      material_column(
+                        width = 4,
+                        numericInput("trackingPort",
+                                     "Please provide server port",
+                                     value = 8080
+                        )
+                      ),
+                      material_column(
+                        width = 4,
+                        textInput("trackUser",
+                                  "Please provide server username",
+                                  value = "admin"
+                        )
+                      )
+                    ),
+                    material_row(
+                      material_column(
+                        width = 4,
+                        passwordInput("trackPass",
+                                      "Please provide server password"
+                        )
+                      ),
+                      material_column(
+                        width = 4,
+                        material_switch("trackAll",
+                                        off_label = "All Teams",
+                                        on_label = "Single Team",
+                                        initial_value = FALSE
+                        )
+                      ),
+                      material_column(
+                        width = 4,
+                        conditionalPanel(
+                          "input.trackAll==true",
+                          material_dropdown("teamConfig",
+                                            "Select Team",
+                                            choices = setNames("No Data Loaded!", "No Data Loaded!")
+                          )
+                        )
+                      )
+                    ),
+                    material_row(
+                      material_column(width = 4),
+                      material_column(
+                        width = 4, br(),
+                        # downloadButton("downloadGPSLoggerConfig",
+                        #                label = "Download GPSlogger\n Configuration Files",
+                        #                style = "color: #fff; background-color: #0d47a1; border-color: #2e6da4"
+                        # )
+                        actionButton(("downloadGPSLoggerConfig"),
+                                     label = "Download GPSlogger\n Configuration Files",
+                                     icon("download"), width = "100%",
+                                     style="color: #fff; background-color: #0d47a1; border-color: #2e6da4"
+                                     ),
+                        downloadButton(("downloadGPSLoggerConfigDwl"), "Not visible", style="visibility: hidden;")
+                      ),
+                      material_column(width = 4)
                     )
+
+
                   )
-                )
               )
             )
           )
@@ -585,7 +609,7 @@ main_ui <- function(request) {
           material_card(
             title = "",
             depth = 4,
-            leafletOutput("trackMap", height = "700px")
+            leafletOutput("trackMap", height = "80vh")
           )
         )
       )
