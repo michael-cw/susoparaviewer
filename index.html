@@ -153,6 +153,50 @@
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"daattali/shinyalert"</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level4">
+<h4 id="experimental-optional-feature-gpslogger-tracking">EXPERIMENTAL OPTIONAL FEATURE: GPSLogger tracking<a class="anchor" aria-label="anchor" href="#experimental-optional-feature-gpslogger-tracking"></a>
+</h4>
+<p>The application also contains an optional feature, which allows you to track enumerators during fieldwork. This may be useful for example when you conduct a pre-survey listing of household units, where coverage of area sampling units is important. To use this feature two prerequisites are needed:</p>
+<ol style="list-style-type: decimal">
+<li>The <a href="https://gpslogger.app/" class="external-link">GPSLogger application</a>, which is an open source, lightweight GPS logger.</li>
+<li>A PostgreSQL database with the logging data stored in the following <em>gpslogger</em> table:
+<ul>
+<li>lat double precision Latitude</li>
+<li>long double precision Longitude</li>
+<li>id text user id included in the url</li>
+<li>aid text android id</li>
+<li>time text time</li>
+<li>acc double precision accuracy</li>
+<li>bat double precision battery percentage</li>
+</ul>
+</li>
+</ol>
+<p>You can either set this up in your own way, or use the <a href="https://nifi.apache.org/" class="external-link">NiFI</a> based solution for which you can find the template in the <a href="https://github.com/michael-cw/NIFI-GPSLogger-with-SSL" class="external-link">NIFI-GPSLogger-with-SSL</a> repo. The latter also contains to bash scripts to set-up NIFI as well as the required PostgreSQL database on Ubuntu 22.04. Nevertheless for both cases, you should know what you do, and be in compliance with local labor and privacy regulations.</p>
+<p>However if you decide to use this feature, then you need to provide the required PostgreSQL database connection details when starting the app.</p>
+<p>You can either run the application interactively:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(susoparaviewer)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>susoparaviewer<span class="sc">::</span><span class="fu">runParaApp</span>(<span class="at">useTrackingPass =</span> [yourinapptrackingpass], </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>                           <span class="at">trackServer =</span> <span class="st">"10.10.10.10"</span>, </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>                           <span class="at">trackServerPort =</span> <span class="dv">5432</span>, </span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                           <span class="at">trackServerDB =</span> <span class="st">"gpsloggerdb"</span>, </span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>                           <span class="at">trackServerUser =</span> [yourPGuser], </span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>                           <span class="at">trackServerPass =</span> [yourPGpassword], </span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>                           <span class="at">trackServerTable =</span> <span class="st">"gpslogger"</span>)</span></code></pre></div>
+<p>With the <em>useTrackingPass</em> password you can restrict access inside the app. For the server option, the command would then look like this:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(susoparaviewer)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>susoparaviewer<span class="sc">::</span><span class="fu">runParaAppServer</span>(<span class="at">useTrackingPass =</span> [yourinapptrackingpass], </span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trackServer =</span> <span class="st">"10.10.10.10"</span>, </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trackServerPort =</span> <span class="dv">5432</span>, </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trackServerDB =</span> <span class="st">"gpsloggerdb"</span>, </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trackServerUser =</span> [yourPGuser], </span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trackServerPass =</span> [yourPGpassword], </span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">trackServerTable =</span> <span class="st">"gpslogger"</span>)</span></code></pre></div>
+<div class="section level5">
+<h5 id="automatically-create-configuration-files-for-your-team">Automatically create configuration files for your team<a class="anchor" aria-label="anchor" href="#automatically-create-configuration-files-for-your-team"></a>
+</h5>
+<p>In addition to monitoring fieldwork activities, the app also includes the option to generate <a href="https://gpslogger.app/#loadprofilesfromafileonyourdevice" class="external-link">GPSLogger configuration files</a> either for all enumerators on the Survey Solutions server or for selected teams. For details see the corresponding vignette.</p>
+</div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="feature-requests-and-bug-reports">Feature requests and bug reports<a class="anchor" aria-label="anchor" href="#feature-requests-and-bug-reports"></a>
