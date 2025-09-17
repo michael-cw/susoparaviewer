@@ -664,12 +664,12 @@ main_server <- function(input, output, session) {
           gpsvarname<-ifelse(length(gpsvarname)==0, NA, gpsvarname[1])
 
           # load the data
-          dataFile<-.runWithModalOnError(
+          dataFile<<-.runWithModalOnError(
             SurveySolutionsAPI::suso_export_paradata(
               workspace = settings[["suso.workspace"]],
               questID = qid,
               version = v,
-              workStatus = "Completed",
+              workStatus = "All",
               reloadTimeDiff = 1,
               inShinyApp = T,
               multiCore = NULL,
@@ -1645,12 +1645,6 @@ main_server <- function(input, output, session) {
   })
   #################################################
   ## DOWNLOAD QUESTIONNAIRE REPORT
-  # callModule(dwl_reportSRV,
-  #            "dwl_q_report",
-  #            rname = "Survey Solutions",
-  #            content = report_content_q,
-  #            creator = paste0("Survey Solutions Paradata Viewer")
-  # )
   dwl_reportSRV("dwl_q_report",
                 fn = "Survey Solutions Paradata Viewer",
                 wordstyles = file.path(system.file("rmdfiles", package = "susoparaviewer"), "FINAL_report_for_download.docx"),
@@ -1709,7 +1703,9 @@ main_server <- function(input, output, session) {
       ##  2.1. Get Question order based on median
       parafile <- parafile[!is.na(counter)]
       parafile_sub <- parafile[responsible == d$key]
-      parafile_sub[, rid := as.numeric(rid)]
+      # CHECK ROSTER COUNT IN PARADATA!!
+      # names(parafile_sub)[grepl("rid", names(parafile_sub))]
+      parafile_sub[, rid := as.numeric(rid1)]
       tab <- parafile_sub[, .(
         Av_DurationQuestionnaire = round(mean(durationNOBREAK, na.rm = T), 2),
         NumberInterviews = n_distinct(key),

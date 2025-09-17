@@ -55,7 +55,7 @@ if(getRversion() >= "3.3.0")  {
     "i", "NAME",
     "long", "lat", "OBJECTID", "NAME_2", "Removals",
     "var_resp", "V1", "V2", "V3", "dateTime", "wDAY", "mDAY", "MONTH", "WEEK", "role", "action", "responsible",
-    "action", "rid", "breaks", "resp_time",
+    "action", "rid1", "rid","breaks", "resp_time",
     "QuestionnaireIdVersion",
     "QuestionnaireId",
     "Version",

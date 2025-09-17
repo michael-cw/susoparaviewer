@@ -43,7 +43,7 @@ shpMapOSM<-function(shp = NULL, z_var = NULL) {
     if(!is.character(shp[[z_var]])) {
       shp[,z_var]<-as.character(shp[[z_var]])
     }
-
+    
     names(bb)<-c("left", "bottom", "right", "top")
     osmmap<-tryCatch(
       {get_map(bb, source = "osm", maptype = "roadmap", scale = 9)},
@@ -53,7 +53,7 @@ shpMapOSM<-function(shp = NULL, z_var = NULL) {
       scale_fill_discrete(name = z_var) +
       scale_color_discrete(guide = "none") +
       ggplot2::theme(legend.position = "bottom")
-
+    
     return(shapePlot_baseMap)
   }
 }
@@ -70,17 +70,13 @@ shpMapOSM_cont<-function(shp = NULL, z_var = NULL) {
     # if(!is.character(shp[[z_var]])) {
     #   shp[,z_var]<-as.character(shp[[z_var]])
     # }
-
+    
     names(bb)<-c("left", "bottom", "right", "top")
-    osmmap<-tryCatch(
-      {get_map(bb, source = "osm", maptype = "roadmap", scale = 9)},
-      error = function(e) {get_map(bb, source = "stamen", maptype = "terrain")})
-    shapePlot_baseMap<-ggmap(osmmap)+
-      geom_sf(data = shp, aes(fill = .data[[z_var]], color = .data[[z_var]]), inherit.aes = FALSE, alpha = 0.5)+
-      ggplot2::scale_fill_viridis_c(name = z_var, option = "magma") +
-      ggplot2::scale_color_viridis_c(guide = "none", option = "magma") +
-      ggplot2::theme(legend.position = "bottom")
-
+    shapePlot_baseMap<-ggplot2::ggplot()+
+      geom_sf(data = shp, aes(fill = .data[[z_var]], color = .data[[z_var]]), inherit.aes = FALSE, alpha = 0.3)+
+      ggplot2::scale_fill_continuous(name = z_var) +
+      ggplot2::scale_color_continuous(guide = "none") +
+      theme(legend.position = "bottom")
     return(shapePlot_baseMap)
   }
 }
@@ -107,11 +103,11 @@ shpMapOSM_cont<-function(shp = NULL, z_var = NULL) {
         type = "error",
         html = TRUE
       )
-
+      
       return(NULL)
     }
   )
-
+  
   return(result)
 }
 
@@ -138,5 +134,5 @@ shpMapOSM_cont<-function(shp = NULL, z_var = NULL) {
     imageUrl = "",
     animation = TRUE
   )
-
+  
 }

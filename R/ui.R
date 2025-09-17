@@ -18,7 +18,7 @@ main_ui <- function(request) {
 
   material_page(
     # shiny alert conditional on version
-    if (utils::packageVersion("shinyalert") < 3) shinyalert::useShinyalert(),
+    if (utils::packageVersion("shinyalert") < '3.0.0') shinyalert::useShinyalert(),
     waiter::use_waiter(),
     startupModalUI("startupModal"),
     nav_bar_color = "blue darken-4",

@@ -18,7 +18,7 @@ GADM.getData<-function(name="GADM",country,level,path, sp.Library="sp"){
   ##  1. Create path
   file.name<-paste0("gadm", v, "_", country, "_", level, "_", sp.Library, ".rds")
   f.path<-file.path(path, file.name)
-  url <- paste0("https://biogeo.ucdavis.edu/data/gadm", version, DIR, file.name)
+  url <- paste0("https://geodata.ucdavis.edu/gadm/gadm", version, DIR, file.name)
 
   ##  2. check local availability
   if (file.exists(f.path)) {
