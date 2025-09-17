@@ -1,11 +1,10 @@
-pandoc: 2.19.2
-pkgdown: 2.0.7
+pandoc: 3.1.11
+pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
   appuse: appuse.html
   susoconnect: susoconnect.html
-last_built: 2023-09-26T17:34Z
+last_built: 2025-09-17T10:42Z
 urls:
   reference: https://michael-cw.github.io/susoparaviewer/reference
   article: https://michael-cw.github.io/susoparaviewer/articles
-
